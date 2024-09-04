@@ -32,7 +32,7 @@ constexpr IteratorData AttemptConvertToUTF(Range_t&& rng, std::basic_string<Dst_
 template <IsCompatibleRange_c Range_t, IsUTF_c Dst_t>
 constexpr std::basic_string<Dst_t> ConvertToUTF(const Range_t& rng) {
     std::basic_string<Dst_t> result{};
-    result.reserve(rng.size());
+    result.reserve(std::ranges::size(rng));
     std::ranges::transform(ForwardView{rng}, CodePointAppender(result), std::identity{}, &IteratorData::code_point);
     return result;
 }
