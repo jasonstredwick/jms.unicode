@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <string>
 
+#include "jcu/constants.hpp"
+
 
 namespace jcu::utf {
 
@@ -36,7 +38,7 @@ constexpr char32_t LEAD_OFFSET         {0xd7c0};     // LEAD_SURROGATE_MIN - (0x
 constexpr char32_t SURROGATE_OFFSET    {0xfca02400}; // 0x10000u - (LEAD_SURROGATE_MIN << 10) - TRAIL_SURROGATE_MIN
 
 // Maximum valid value for a Unicode code point
-constexpr char32_t CODE_POINT_MAX {0x10ffff};
+constexpr char32_t CODE_POINT_MAX {jcu::CODE_POINT_MAX};
 
 // Replacement character
 constexpr char32_t REPLACEMENT_CHARACTER {0xfffd};
