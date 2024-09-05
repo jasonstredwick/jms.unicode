@@ -94,7 +94,7 @@ class DerivedBidiClass {
 public:
     struct Data {
         char32_t code_point{0};
-        jcu::bidi::BidiType bidi_type{jcu::bidi::BidiType::Nil};
+        jcu::bidi::BidiType bidi_type{jcu::bidi::BidiType::NIL};
     };
 
 private:
@@ -119,7 +119,7 @@ public:
         DerivedBidiClassFileIterator it{directory / FILE_NAME, OPEN_MODE};
         DerivedBidiClassFileIterator end{true};
 
-        std::vector all_bidi_types(jcu::CODE_POINT_MAX + 1, jcu::bidi::BidiType::Nil);
+        std::vector all_bidi_types(jcu::CODE_POINT_MAX + 1, jcu::bidi::BidiType::NIL);
         std::ranges::for_each(it, end, [&all_bidi_types](auto&& unit) mutable {
             auto result = MISSING_REGEX(unit.bidi_type);
             auto bidi_type = jcu::bidi::BidiTypeFromString(result.get<1>().to_view());
@@ -137,14 +137,14 @@ public:
             auto [a, b] = pair;
             if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .bidi_type=b}); }
         }
-        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .bidi_type=jcu::bidi::BidiType::Nil});
+        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .bidi_type=jcu::bidi::BidiType::NIL});
     }
 
     auto begin() const noexcept { return data.cbegin(); }
     auto end() const noexcept { return data.cend(); }
 
     auto ToBidiType(char32_t code_point) const {
-        if (data.empty()) { return jcu::bidi::BidiType::Nil; }
+        if (data.empty()) { return jcu::bidi::BidiType::NIL; }
         auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
         return std::ranges::prev(it)->bidi_type;
     }
