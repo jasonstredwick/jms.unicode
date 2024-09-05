@@ -2,95 +2,120 @@
 
 #pragma once
 
+
 #include <algorithm>
-#include <map>
+#include <cstdint>
+#include <filesystem>
+#include <format>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "parser/base_iterator.hpp"
-#include "sheen_bidi/unicode_version.hpp"
+#include <ctre.hpp>
+
+#include "jcu/constants.hpp"
+#include "jcu/general_category.hpp"
+#include "jcu/general_category_strings.hpp"
+#include "jcu/ucd/base_iterator.hpp"
+#include "jcu/unicode_version.hpp"
 
 
 namespace jcu::ucd {
 
 
-struct PropertyValueUnit {
-    std::string property{};
-    std::string short_name{};
-    std::string long_name{};
-    std::vector<std::string> optional_params{};
+struct DerivedGeneralCategoryUnit {
+    char32_t code_point_first{0};
+    char32_t code_point_last{0};
+    std::string general_category{};
+    bool operator==(const DerivedGeneralCategoryUnit&) const = default;
 };
 
 
-class PropertyValueFileIterator : public FileIterator<PropertyValueUnit, PropertyValueFileIterator> {
+class DerivedGeneralCategoryFileIterator : public FileIterator<DerivedGeneralCategoryUnit,
+                                                               DerivedGeneralCategoryFileIterator> {
 protected:
-    static constexpr auto REGEX = ctre::match<"^\\s*([_a-zA-Z]+)\\s*;\\s*([^ ]+)\\s*;\\s*([^ ]+)">;
-    static constexpr auto REGEX_VAL = ctre::match<"\\s*([^ ]+)\\s*">;
+    static constexpr auto REGEX = ctre::match<"^\\s*([[:xdigit:]]+)(?:..([[:xdigit:]]+))?\\s*;\\s*([a-zA-Z]+).*$">;
 
-    bool AcceptLine() const noexcept override { return !buffer.empty() && buffer[0] != '#'; }
+    bool AcceptLine() const override { return !buffer.empty() && buffer[0] != '#'; }
 
-    PropertyValueUnit ProcessLine() override {
-        PropertyValueUnit unit{};
+    DerivedGeneralCategoryUnit ProcessLine() override {
         if (auto [whole, match1, match2, match3] = REGEX(buffer); whole) {
-            unit.property = match1.to_string();
-            unit.short_name = match2.to_string();
-            unit.long_name = match3.to_string();
-        } else {
-            throw std::runtime_error{std::format("Unexpected line of data ({}): {}", GetLineNum(), buffer)};
+            char32_t first = static_cast<char32_t>(std::stoul(match1.to_string(), nullptr, 16));
+            char32_t last = !match2 ? first : static_cast<char32_t>(std::stoul(match2.to_string(), nullptr, 16));
+            return {
+                .code_point_first=first,
+                .code_point_last=last,
+                .general_category=match3.to_string()
+            };
         }
-        auto it = std::ranges::find(buffer, ';');
-        it = std::ranges::find(it, buffer.end(), ';');
-        it = std::ranges::find(it, buffer.end(), ';');
-        if (it == buffer.end()) { return unit; }
-        ++it; // move off of semicolon
-        unit.optional_params = std::ranges::subrange(it, buffer.end()) |
-                               std::views::split(';') |
-                               std::views::transform([](auto&& i) { return REGEX_VAL(i).get<1>().to_string(); }) |
-                               std::ranges::to<std::vector>();
-        return unit;
+        throw std::runtime_error{std::format("Unexpected line of data ({}): {}", GetLineNum(), buffer)};
     }
 
 public:
     using FileIterator::FileIterator;
 
-    PropertyValueFileIterator(const std::filesystem::path& path, std::ios_base::openmode mode)
+    DerivedGeneralCategoryFileIterator(const std::filesystem::path& path, std::ios_base::openmode mode)
     : FileIterator{path, mode}
     { Init(); }
 };
-static_assert(std::forward_iterator<PropertyValueFileIterator>);
+static_assert(std::forward_iterator<DerivedGeneralCategoryFileIterator>);
 
 
-class PropertyValues {
+class DerivedGeneralCategory {
+public:
+    struct Data {
+        char32_t code_point{0};
+        GeneralCategory general_category{GeneralCategory::NIL};
+    };
+
+private:
     UnicodeVersion version{};
-    std::map<std::string, std::vector<PropertyValueUnit>> data{};
-    std::vector<PropertyValueUnit> empty{};
+    std::vector<Data> data{};
 
 public:
-    static constexpr const char* FILE_NAME = "PropertyValueAliases.txt";
+    static constexpr const char* FILE_NAME = "DerivedGeneralCategory.txt";
     static constexpr std::ios_base::openmode OPEN_MODE = std::ios::in | std::ios::binary;
 
-    PropertyValues(const std::filesystem::path& directory)
+    DerivedGeneralCategory(const std::filesystem::path& directory)
     : version{ExtractVersion(directory / FILE_NAME, OPEN_MODE)}
     {
-        auto rng = std::ranges::subrange(PropertyValueFileIterator{directory / FILE_NAME, OPEN_MODE},
-                                         PropertyValueFileIterator{true});
-        std::ranges::for_each(rng, [&data=this->data](auto&& unit) {
-            if (auto it = data.find(unit.property); it != data.end()) {
-                it->second.push_back(std::move(unit));
-            } else {
-                data[unit.property] = std::vector{{unit}};
-            }
+        // Create a vector of GeneralCategory for all possible code points.  Throw exception (.at) for unexpected
+        // code points.
+        // Assumptions:
+        //     1. No gaps; i.e. default value is NIL
+        // TODO: Add validation steps.
+        DerivedGeneralCategoryFileIterator it{directory / FILE_NAME, OPEN_MODE};
+        DerivedGeneralCategoryFileIterator end{true};
+
+        std::vector<GeneralCategory> all_general_categories(jcu::CODE_POINT_MAX + 1, GeneralCategory::NIL);
+        std::ranges::for_each(it, end, [&all_general_categories](auto&& unit) mutable {
+            GeneralCategory general_category = GeneralCategoryFromString(unit.general_category);
+            size_t start = static_cast<size_t>(unit.code_point_first);
+            size_t last  = static_cast<size_t>(unit.code_point_last);
+            for (auto i : std::views::iota(start, last + 1)) { all_general_categories.at(i) = general_category; }
         });
+
+        // Condense bidi type runs
+        data.reserve(1 + std::ranges::count_if(all_general_categories | std::views::pairwise, [](auto&& pair) {
+            auto [a, b] = pair; return a != b;
+        }));
+        data.push_back({.code_point=0, .general_category=all_general_categories[0]});
+        for (auto [index, pair] : std::views::enumerate(all_general_categories | std::views::pairwise)) {
+            auto [a, b] = pair;
+            if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .general_category=b}); }
+        }
+        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .general_category=GeneralCategory::NIL});
     }
 
     auto begin() const noexcept { return data.cbegin(); }
     auto end() const noexcept { return data.cend(); }
 
-    const std::vector<PropertyValueUnit>& GetPropertyValues(const std::string& property) const noexcept {
-        if (auto it = data.find(property); it != data.end()) { return it->second; }
-        return empty;
+    GeneralCategory ToGeneralCategory(char32_t code_point) const {
+        if (data.empty()) { return GeneralCategory::NIL; }
+        auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
+        return std::ranges::prev(it)->general_category;
     }
 
     const UnicodeVersion &Version() const { return version; }
