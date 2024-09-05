@@ -12,8 +12,8 @@
 #include <string_view>
 #include <vector>
 
-#include "parser/base_iterator.hpp"
-#include "sheen_bidi/unicode_version.hpp"
+#include "jcu/ucd/base_iterator.hpp"
+#include "jcu/unicode_version.hpp"
 
 
 namespace jcu::ucd {

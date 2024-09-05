@@ -11,10 +11,12 @@
 #include <stdexcept>
 #include <string_view>
 
-#include "parser/base_iterator.hpp"
-#include "sheen_bidi/unicode_version.hpp"
-#include "sheen_bidi/script_type.hpp"
-#include "sheen_bidi/strings.hpp"
+#include <ctre.hpp>
+
+#include "jcu/ucd/base_iterator.hpp"
+#include "jcu/unicode_version.hpp"
+#include "jcu/script.hpp"
+#include "jcu/script_strings.hpp"
 #include "jcu/constants.hpp"
 
 
@@ -81,7 +83,7 @@ class Scripts {
 public:
     struct Data {
         char32_t code_point{0};
-        ScriptType script_name{ScriptType::Nil};
+        Script script_name{Script::NIL};
     };
 
 private:
@@ -98,7 +100,7 @@ public:
     Scripts(const std::filesystem::path& directory)
     : version{ExtractVersion(directory / FILE_NAME, OPEN_MODE)}
     {
-        // Create a vector of ScriptType for all possible code points.  Throw exception (.at) for unexpected code points.
+        // Create a vector of Script for all possible code points.  Throw exception (.at) for unexpected code points.
         // Assumptions:
         //     1. Missing ranges come before assigned value ranges
         //     2. The global default L is the first range of missing followed by non-overlapping ranges in missing.
@@ -107,11 +109,11 @@ public:
         ScriptsFileIterator it{directory / FILE_NAME, OPEN_MODE};
         ScriptsFileIterator end{true};
 
-        std::vector<ScriptType> all_script_names(jcu::CODE_POINT_MAX + 1, ScriptType::Nil);
+        std::vector<Script> all_script_names(jcu::CODE_POINT_MAX + 1, Script::NIL);
         std::ranges::for_each(it, end, [&all_script_names, &script_names=this->script_names](auto&& unit) mutable {
             auto result = MISSING_REGEX(unit.script_name);
             std::string_view script_name_sv = result.get<1>().to_view();
-            ScriptType script_name = ScriptFromString(script_name_sv);
+            Script script_name = ScriptFromString(script_name_sv);
             size_t start = static_cast<size_t>(unit.code_point_first);
             size_t last  = static_cast<size_t>(unit.code_point_last);
             for (auto i : std::views::iota(start, last + 1)) { all_script_names.at(i) = script_name; }
@@ -127,14 +129,14 @@ public:
             auto [a, b] = pair;
             if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .script_name=b}); }
         }
-        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .script_name=ScriptType::Nil});
+        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .script_name=Script::NIL});
     }
 
     auto begin() const noexcept { return data.cbegin(); }
     auto end() const noexcept { return data.cend(); }
 
-    ScriptType ToScriptType(char32_t code_point) const {
-        if (data.empty()) { return ScriptType::Nil; }
+    Script ToScript(char32_t code_point) const {
+        if (data.empty()) { return Script::NIL; }
         auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
         return std::ranges::prev(it)->script_name;
     }
