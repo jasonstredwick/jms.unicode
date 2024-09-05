@@ -15,7 +15,7 @@ namespace jcu::bidi {
  * The bidirectional types of a character.
  */
 enum class BidiType : uint8_t {
-    Nil = 0x00,
+    NIL = 0x00,
 
     L   = 0x01,   // <  Strong: Left-to-Right 
     R   = 0x02,   // <  Strong: Right-to-Left 

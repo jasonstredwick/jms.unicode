@@ -39,7 +39,7 @@ public:
     static constexpr auto end() noexcept { return data.cend(); }
 
     static constexpr BidiType Lookup(char32_t code_point) noexcept {
-        if (data.empty()) { return BidiType::Nil; }
+        if (data.empty()) { return BidiType::NIL; }
         auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
         return std::ranges::prev(it)->bidi_type;
     }

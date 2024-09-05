@@ -39,7 +39,7 @@ constexpr BidiType BidiTypeFromString(std::string_view sv) {
     if (sv == std::string_view{"LRO"}) { return BidiType::LRO; }
     if (sv == std::string_view{"RLO"}) { return BidiType::RLO; }
     if (sv == std::string_view{"PDF"}) { return BidiType::PDF; }
-    return BidiType::Nil;
+    return BidiType::NIL;
 }
 
 
@@ -70,7 +70,7 @@ constexpr std::string ToString(BidiType value) {
     if (value == BidiType::LRO) { return "LRO"; }
     if (value == BidiType::RLO) { return "RLO"; }
     if (value == BidiType::PDF) { return "PDF"; }
-    return "Nil";
+    return "NIL";
 }
 
 
