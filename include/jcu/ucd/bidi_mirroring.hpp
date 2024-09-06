@@ -29,7 +29,7 @@ struct BidiMirroringUnit {
 
 class BidiMirroringFileIterator : public FileIterator<BidiMirroringUnit, BidiMirroringFileIterator> {
 protected:
-    static constexpr auto REGEX = ctre::match<"^\\s*([[:xdigit:]]+)\\s*;\\s*([[:xdigit:]]+))\\s*#.*$">;
+    static constexpr auto REGEX = ctre::match<"^\\s*([[:xdigit:]]+)\\s*;\\s*([[:xdigit:]]+)\\s*#.*$">;
     static constexpr auto REGEX_UNMATCHED = ctre::match<"^\\s*([[:xdigit:]]+)\\s*;.+$">;
 
     bool AcceptLine() const noexcept override {
