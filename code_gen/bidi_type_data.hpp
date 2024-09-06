@@ -24,6 +24,7 @@ R"(/*
 #pragma once
 
 
+#include <algorithm>
 #include <array>
 
 #include "jcu/bidi/bidi_type.hpp"
@@ -35,13 +36,15 @@ namespace jcu::bidi {
 
 class BidiTypeData {
 public:
+    using value_type = BidiType;
+
     static constexpr auto begin() noexcept { return data.cbegin(); }
     static constexpr auto end() noexcept { return data.cend(); }
 
-    static constexpr BidiType Lookup(char32_t code_point) noexcept {
-        if (data.empty()) { return BidiType::NIL; }
+    static constexpr value_type Lookup(char32_t code_point) noexcept {
+        if (data.empty()) { return value_type::NIL; }
         auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
-        return std::ranges::prev(it)->bidi_type;
+        return std::ranges::prev(it)->value;
     }
 
     static constexpr const UnicodeVersion &Version() noexcept { return version; }
@@ -49,7 +52,7 @@ public:
 private:
     struct Data {
         char32_t code_point;
-        BidiType bidi_type;
+        value_type value;
     };
 
 )";
@@ -64,8 +67,8 @@ private:
     out << std::format("    static constexpr std::array<Data, {}> data{{{{\n", std::ranges::distance(it, it_end));
 
     for (; it != it_end; ++it) {
-        out << std::format("        Data{{.code_point={:#x}, .bidi_type=BidiType::{}}}{}\n",
-                           it->code_point, ToString(it->bidi_type), (it == it_last ? "" : ","));
+        out << std::format("        Data{{.code_point={:#x}, .value=value_type::{}}}{}\n",
+                           it->code_point, ToString(it->value), (it == it_last ? "" : ","));
     }
 
     out <<

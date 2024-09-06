@@ -1,4 +1,4 @@
-// Copyright © 2018 Muhammad Tayyab Akram
+// Copyright © 2018-2019 Muhammad Tayyab Akram
 
 #pragma once
 
@@ -26,6 +26,7 @@ R"(/*
 #pragma once
 
 
+#include <algorithm>
 #include <array>
 
 #include "jcu/general_category.hpp"
@@ -37,13 +38,15 @@ namespace jcu {
 
 class GeneralCategoryData {
 public:
+    using value_type = GeneralCategory;
+
     static constexpr auto begin() noexcept { return data.cbegin(); }
     static constexpr auto end() noexcept { return data.cend(); }
 
-    static constexpr GeneralCategory Lookup(char32_t code_point) noexcept {
-        if (data.empty()) { return GeneralCategory::NIL; }
+    static constexpr value_type Lookup(char32_t code_point) noexcept {
+        if (data.empty()) { return value_type::NIL; }
         auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
-        return std::ranges::prev(it)->general_category;
+        return std::ranges::prev(it)->value;
     }
 
     static constexpr const UnicodeVersion &Version() noexcept { return version; }
@@ -51,7 +54,7 @@ public:
 private:
     struct Data {
         char32_t code_point;
-        GeneralCategory general_category;
+        value_type value;
     };
 
 )";
@@ -66,12 +69,12 @@ private:
     out << std::format("    static constexpr std::array<Data, {}> data{{{{\n", std::ranges::distance(it, it_end));
 
     for (; it != it_end; ++it) {
-        std::string name = ToString(it->general_category);
+        std::string name = ToString(it->value);
         std::ranges::transform(name, name.begin(), [](char ch) {
             // must cast to unsigned of the same size prior to casting to int.
             return static_cast<char>(std::toupper(static_cast<int>(static_cast<unsigned char>(ch))));
         });
-        out << std::format("        Data{{.code_point={:#x}, .general_category=GeneralCategory::{}}}{}\n",
+        out << std::format("        Data{{.code_point={:#x}, .value=value_type::{}}}{}\n",
                            it->code_point, name, (it == it_last ? "" : ","));
     }
 
