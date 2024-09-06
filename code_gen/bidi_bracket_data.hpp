@@ -55,8 +55,8 @@ public:
     static constexpr auto end() noexcept { return data.cend(); }
 
     static constexpr value_type Lookup(char32_t code_point) noexcept {
-        if (data.empty()) { return {}; }
-        auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
+        auto it = std::ranges::lower_bound(data, code_point, {}, &Data::code_point);
+        if (it == data.end() || it->code_point != code_point) { return {}; }
         return std::ranges::prev(it)->value;
     }
 
