@@ -83,7 +83,7 @@ class Scripts {
 public:
     struct Data {
         char32_t code_point{0};
-        Script script_name{Script::NIL};
+        Script value{Script::NIL};
     };
 
 private:
@@ -109,27 +109,27 @@ public:
         ScriptsFileIterator it{directory / FILE_NAME, OPEN_MODE};
         ScriptsFileIterator end{true};
 
-        std::vector<Script> all_script_names(jcu::CODE_POINT_MAX + 1, Script::NIL);
-        std::ranges::for_each(it, end, [&all_script_names, &script_names=this->script_names](auto&& unit) mutable {
+        std::vector<Script> all_scripts(jcu::CODE_POINT_MAX + 1, Script::NIL);
+        std::ranges::for_each(it, end, [&all_scripts, &script_names=this->script_names](auto&& unit) mutable {
             auto result = MISSING_REGEX(unit.script_name);
             std::string_view script_name_sv = result.get<1>().to_view();
-            Script script_name = ScriptFromString(script_name_sv);
+            Script script = ScriptFromString(script_name_sv);
             size_t start = static_cast<size_t>(unit.code_point_first);
             size_t last  = static_cast<size_t>(unit.code_point_last);
-            for (auto i : std::views::iota(start, last + 1)) { all_script_names.at(i) = script_name; }
+            for (auto i : std::views::iota(start, last + 1)) { all_scripts.at(i) = script; }
             script_names.insert(std::string{script_name_sv});
         });
 
         // Condense script type runs
-        data.reserve(1 + std::ranges::count_if(all_script_names | std::views::pairwise, [](auto&& pair) {
+        data.reserve(1 + std::ranges::count_if(all_scripts | std::views::pairwise, [](auto&& pair) {
             auto [a, b] = pair; return a != b;
         }));
-        data.push_back({.code_point=0, .script_name=all_script_names[0]});
-        for (auto [index, pair] : std::views::enumerate(all_script_names | std::views::pairwise)) {
+        data.push_back({.code_point=0, .value=all_scripts[0]});
+        for (auto [index, pair] : std::views::enumerate(all_scripts | std::views::pairwise)) {
             auto [a, b] = pair;
-            if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .script_name=b}); }
+            if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .value=b}); }
         }
-        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .script_name=Script::NIL});
+        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .value=Script::NIL});
     }
 
     auto begin() const noexcept { return data.cbegin(); }
@@ -138,7 +138,7 @@ public:
     Script ToScript(char32_t code_point) const {
         if (data.empty()) { return Script::NIL; }
         auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
-        return std::ranges::prev(it)->script_name;
+        return std::ranges::prev(it)->value;
     }
 
     const auto& GetScriptNames() const { return script_names; }
