@@ -67,7 +67,7 @@ class DerivedGeneralCategory {
 public:
     struct Data {
         char32_t code_point{0};
-        GeneralCategory general_category{GeneralCategory::NIL};
+        GeneralCategory value{GeneralCategory::NIL};
     };
 
 private:
@@ -101,12 +101,12 @@ public:
         data.reserve(1 + std::ranges::count_if(all_general_categories | std::views::pairwise, [](auto&& pair) {
             auto [a, b] = pair; return a != b;
         }));
-        data.push_back({.code_point=0, .general_category=all_general_categories[0]});
+        data.push_back({.code_point=0, .value=all_general_categories[0]});
         for (auto [index, pair] : std::views::enumerate(all_general_categories | std::views::pairwise)) {
             auto [a, b] = pair;
-            if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .general_category=b}); }
+            if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .value=b}); }
         }
-        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .general_category=GeneralCategory::NIL});
+        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .value=GeneralCategory::NIL});
     }
 
     auto begin() const noexcept { return data.cbegin(); }
@@ -115,7 +115,7 @@ public:
     GeneralCategory ToGeneralCategory(char32_t code_point) const {
         if (data.empty()) { return GeneralCategory::NIL; }
         auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
-        return std::ranges::prev(it)->general_category;
+        return std::ranges::prev(it)->value;
     }
 
     const UnicodeVersion &Version() const { return version; }

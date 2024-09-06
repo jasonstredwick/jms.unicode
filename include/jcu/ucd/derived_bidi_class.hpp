@@ -94,7 +94,7 @@ class DerivedBidiClass {
 public:
     struct Data {
         char32_t code_point{0};
-        jcu::bidi::BidiType bidi_type{jcu::bidi::BidiType::NIL};
+        jcu::bidi::BidiType value{jcu::bidi::BidiType::NIL};
     };
 
 private:
@@ -132,12 +132,12 @@ public:
         data.reserve(1 + std::ranges::count_if(all_bidi_types | std::views::pairwise, [](auto&& pair) {
             auto [a, b] = pair; return a != b;
         }));
-        data.push_back({.code_point=0, .bidi_type=all_bidi_types[0]});
+        data.push_back({.code_point=0, .value=all_bidi_types[0]});
         for (auto [index, pair] : std::views::enumerate(all_bidi_types | std::views::pairwise)) {
             auto [a, b] = pair;
-            if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .bidi_type=b}); }
+            if (a != b) { data.push_back({.code_point=static_cast<char32_t>(index + 1), .value=b}); }
         }
-        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .bidi_type=jcu::bidi::BidiType::NIL});
+        data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .value=jcu::bidi::BidiType::NIL});
     }
 
     auto begin() const noexcept { return data.cbegin(); }
@@ -146,7 +146,7 @@ public:
     auto ToBidiType(char32_t code_point) const {
         if (data.empty()) { return jcu::bidi::BidiType::NIL; }
         auto it = std::ranges::upper_bound(data, code_point, {}, &Data::code_point);
-        return std::ranges::prev(it)->bidi_type;
+        return std::ranges::prev(it)->value;
     }
 
     const UnicodeVersion &Version() const { return version; }
