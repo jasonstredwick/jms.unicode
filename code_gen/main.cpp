@@ -6,29 +6,24 @@
 #include <print>
 #include <map>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "jcu/ucd/bidi_brackets.hpp"
+#include "jcu/ucd/bidi_mirroring.hpp"
+#include "jcu/ucd/derived_bidi_class.hpp"
+#include "jcu/ucd/derived_general_category.hpp"
+#include "jcu/ucd/scripts.hpp"
+
 #include "jcu/utf/format.hpp"
 
-
-//#include "jcu/bidi/general_category_type.hpp"
-//#include "parser/bidi_brackets.hpp"
-//#include "parser/bidi_character_test.hpp"
-//#include "parser/bidi_mirroring.hpp"
-#include "jcu/ucd/derived_bidi_class.hpp"
-//#include "parser/derived_general_category.hpp"
-//#include "parser/property_value_aliases.hpp"
-//#include "parser/scripts.hpp"
-//#include "parser/unicode_data.hpp"
-//#include "parser/unicode_version.hpp"
-
+#include "bidi_bracket_data.hpp"
+#include "bidi_mirroring_data.hpp"
 #include "bidi_type_data.hpp"
-//#include "generator/general_category_data.hpp"
-//#include "generator/general_category_lookup_generator.hpp"
-//#include "generator/pairing_lookup_generator.hpp"
-//#include "generator/script_lookup_generator.hpp"
+#include "general_category_data.hpp"
+#include "script_data.hpp"
 
 
 using namespace jcu;
@@ -37,8 +32,11 @@ using namespace jcu::ucd;
 
 
 std::map<std::string_view, int> targets{
-    {"DerivedBidiClass", 0},
-    {"DerivedGeneralCategory", 0}
+    {"BidiBracketData", 0},
+    {"BidiMirroringData", 0},
+    {"BidiTypeData", 0},
+    {"GeneralCategoryData", 0},
+    {"ScriptData", 0}
 };
 
 
@@ -56,7 +54,7 @@ void PrintHelp() {
 int main(int argc, const char** argv) {
     std::vector<std::string_view> args{argv, argv + argc};
     std::filesystem::path data_path{"data"};
-    std::filesystem::path include_path{"include"}; 
+    std::filesystem::path include_path{"include"};
     std::filesystem::path test_path{"tests"};
     size_t start_target_index = 1;
 
@@ -82,82 +80,32 @@ int main(int argc, const char** argv) {
 
     // If no target was chosen, choose them all.
     if (auto it = std::ranges::find_if(targets, [](auto&& pair) { return pair.second == 1; }); it == targets.end()) {
-        for (auto& [k, v] : targets) { v = 1; }
+        for (auto& [k, target] : targets) { target = 1; }
     }
 
-    std::println("Begin");
-    try {
-#if 0
-        std::println("DerivedBidiClass");
-        DerivedBidiClass dbc{data_path};
-        std::println("Version: {}", dbc.Version().ToString());
-        std::println("NumUnits: {}", std::ranges::distance(dbc.begin(), dbc.end()));
-        std::println("BidiType: {}", ToString(dbc.ToBidiType(0)));
-        std::println("BidiType: {}", ToString(dbc.ToBidiType(0x0388)));
-        std::println("BidiType: {}", ToString(dbc.ToBidiType(0x100010)));
-        std::println("BidiType: {}", ToString(dbc.ToBidiType(0x09BC)));
-        std::println("BidiType: {}", ToString(dbc.ToBidiType(0x110000)));
-        std::println("");
-
-        std::ofstream out{include_path / "jcu" / "bidi" / "bidi_type_data.hpp", std::ios::out | std::ios::trunc};
-        jcu::code_gen::WriteHeader_BidiTypeData(out, dbc);
-#endif
-#if 0
-        std::println("DerivedGeneralCategory");
-        DerivedGeneralCategory dgc{data_path};
-        std::println("Version: {}", dgc.Version().ToString());
-        std::println("NumUnits: {}", std::ranges::distance(dgc.begin(), dgc.end()));
-        std::println("GeneralCategory: {}", ToString(dgc.ToGeneralCategory(0)));
-        std::println("GeneralCategory: {}", ToString(dgc.ToGeneralCategory(0x0388)));
-        std::println("GeneralCategory: {}", ToString(dgc.ToGeneralCategory(0x100010)));
-        std::println("GeneralCategory: {}", ToString(dgc.ToGeneralCategory(0x09BC)));
-        std::println("GeneralCategory: {}", ToString(dgc.ToGeneralCategory(0x110000)));
-        std::println("");
-
-        //std::ofstream out{"test.hpp", std::ios::out | std::ios::trunc};
-        //SheenBidi::Generator::WriteHeader_GeneralCategoryData(out, dgc);
-#endif
-    } catch(const std::exception& e) {
-        std::println("Exception caught");
-        std::println("{}", e.what());
+    // TODO: Research more if mapping to object construction is possible from string or related identifier.
+    auto Write = [&](const auto& obj) {
+        std::ofstream out{jcu::code_gen::Path(obj, include_path), std::ios::out | std::ios::trunc};
+        jcu::code_gen::WriteHeader(out, obj);
+    };
+    for (auto [k, target] : targets) {
+        if (!target) { continue; }
+        std::print("Generating {} ... ", k);
+        try {
+            if      (k == "BidiBracketData")     { Write(BidiBrackets{data_path}); }
+            else if (k == "BidiMirroringData")   { Write(BidiMirroring{data_path}); }
+            else if (k == "BidiTypeData")        { Write(DerivedBidiClass{data_path}); }
+            else if (k == "GeneralCategoryData") { Write(DerivedGeneralCategory{data_path}); }
+            else if (k == "ScriptData")          { Write(Scripts{data_path}); }
+            else { throw std::runtime_error{"Misalignment targets:Write"}; }
+        } catch(const std::exception& e) {
+            std::println("failed");
+            std::println("Exception caught:");
+            std::println("{}", e.what());
+            break;
+        }
+        std::println("done");
     }
-    std::println("End");
 
-    /*
-    const string in = "/path/to/input";
-    const string out = "/path/to/output";
-
-    UnicodeData unicodeData(in);
-    BidiMirroring bidiMirroring(in);
-    BidiBrackets bidiBrackets(in);
-    DerivedBidiClass derivedBidiClass(in);
-    Scripts scripts(in);
-    PropertyValueAliases propertyValueAliases(in);
-
-    cout << "Generating files." << endl;
-
-    BidiTypeLookupGenerator bidiTypeLookup(derivedBidiClass);
-    bidiTypeLookup.setMainSegmentSize(16);
-    bidiTypeLookup.setBranchSegmentSize(64);
-    bidiTypeLookup.generateFile(out);
-
-    PairingLookupGenerator pairingLookup(bidiMirroring, bidiBrackets);
-    pairingLookup.setSegmentSize(106);
-    pairingLookup.generateFile(out);
-
-    GeneralCategoryLookupGenerator generalCategoryLookup(unicodeData);
-    generalCategoryLookup.setMainSegmentSize(16);
-    generalCategoryLookup.setBranchSegmentSize(49);
-    generalCategoryLookup.generateFile(out);
-
-    ScriptLookupGenerator scriptLookup(scripts, propertyValueAliases);
-    scriptLookup.setMainSegmentSize(16);
-    scriptLookup.setBranchSegmentSize(32);
-    scriptLookup.generateFile(out);
-
-    cout << "Finished.";
-
-    getchar();
-*/
     return 0;
 }
