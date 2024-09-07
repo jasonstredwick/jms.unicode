@@ -69,7 +69,7 @@ int main(int argc, const char** argv) {
     }
 
     for (auto i : args | std::views::drop(start_target_index)) {
-        if (i == "help") { PrintHelp(); return 0; }
+        if (i == "--help" || i == "help" || i == "/?" || i == "-help") { PrintHelp(); return 0; }
         else if (auto it = targets.find(i); it != targets.end()) { targets[i] = 1; }
         else {
             std::println("Invalid target: {}\n", i);
