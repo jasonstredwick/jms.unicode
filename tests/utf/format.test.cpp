@@ -8,7 +8,7 @@
 #include "ftest.h"
 
 
-TEST(ViewTests, test_DefaultFuncs) {
+TEST(FormatTests, test_DefaultFuncs) {
     using namespace jcu::utf;
     char8_t c8 = 0x41;
     char16_t c16 = 0x42;

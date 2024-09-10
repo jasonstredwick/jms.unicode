@@ -17,14 +17,14 @@ namespace jcu::utf {
 
 struct DecodeData {
     size_t consumed{0};
-    char32_t code_point{REPLACEMENT_CHARACTER};
+    char32_t code_point{0};
     DecodeError error_code{DecodeError::OK};
 
     friend constexpr bool operator==(const DecodeData&, const DecodeData&) noexcept = default;
 };
 
 
-constexpr DecodeData DecodeUTF8(IsUTF8CompatibleRange_c auto && rng) noexcept {
+constexpr DecodeData DecodeUTF(IsUTF8CompatibleRange_c auto && rng) noexcept {
     if (rng.empty()) { return {}; }
 
     // Expected byte length of the utf-8 sequence, according to the lead byte
@@ -94,27 +94,7 @@ constexpr DecodeData DecodeUTF8(IsUTF8CompatibleRange_c auto && rng) noexcept {
 }
 
 
-constexpr auto DecodeUTF8(IsUTF8Compatible_c auto ch) noexcept {
-    if constexpr (std::same_as<decltype(ch), char8_t>) {
-        return DecodeUTF8(std::u8string_view{std::addressof(ch), 1});
-    } else {
-        char8_t ch8 = static_cast<char8_t>(ch);
-        return DecodeUTF8(std::u8string_view{std::addressof(ch8), 1});
-    }
-}
-
-
-template <IsUTF8Compatible_c T, size_t N>
-constexpr auto DecodeUTF8(const T(&ptr)[N]) noexcept {
-    if constexpr (std::same_as<T, char8_t>) {
-        return DecodeUTF8(std::u8string_view{ptr});
-    } else {
-        return DecodeUTF8(std::string_view{ptr});
-    }
-}
-
-
-constexpr DecodeData DecodeUTF16(IsUTF16CompatibleRange_c auto && rng) noexcept {
+constexpr DecodeData DecodeUTF(IsUTF16CompatibleRange_c auto && rng) noexcept {
     if (rng.empty()) { return {}; }
 
     const char16_t first_word = rng[0];
@@ -151,26 +131,7 @@ constexpr DecodeData DecodeUTF16(IsUTF16CompatibleRange_c auto && rng) noexcept 
     };
 }
 
-constexpr auto DecodeUTF16(IsUTF16Compatible_c auto ch) noexcept {
-    if constexpr (std::same_as<decltype(ch), char16_t>) {
-        return DecodeUTF16(std::u16string_view{std::addressof(ch), 1});
-    } else {
-        return DecodeUTF16(std::span{std::addressof(ch), 1});
-    }
-}
-
-
-template <IsUTF16Compatible_c T, size_t N>
-constexpr auto DecodeUTF16(const T(&ptr)[N]) noexcept {
-    if constexpr (std::same_as<T, char16_t>) {
-        return DecodeUTF16(std::u16string_view{ptr});
-    } else {
-        return DecodeUTF16(std::span{ptr, N});
-    }
-}
-
-
-constexpr DecodeData DecodeUTF32(IsUTF32CompatibleRange_c auto && rng) noexcept {
+constexpr DecodeData DecodeUTF(IsUTF32CompatibleRange_c auto && rng) noexcept {
     if (rng.empty()) { return {}; }
 
     char32_t code_point = rng[0];
@@ -178,7 +139,7 @@ constexpr DecodeData DecodeUTF32(IsUTF32CompatibleRange_c auto && rng) noexcept 
         if constexpr (std::same_as<wchar_t, std::ranges::range_value_t<decltype(rng)>>) {
             if (rng.size() > 1) {
                 char16_t wdata[2] = {static_cast<char16_t>(rng[0]), static_cast<char16_t>(rng[1])};
-                DecodeData dd = DecodeUTF16(std::span{wdata, 2});
+                DecodeData dd = DecodeUTF(std::span{wdata, 2});
                 if (IsCodePointValid(dd.code_point)) { return dd; }
             }
         }
@@ -193,30 +154,21 @@ constexpr DecodeData DecodeUTF32(IsUTF32CompatibleRange_c auto && rng) noexcept 
 }
 
 
-constexpr auto DecodeUTF32(IsUTF32Compatible_c auto ch) noexcept {
-    if constexpr (std::same_as<decltype(ch), char32_t>) {
-        return DecodeUTF32(std::u32string_view{std::addressof(ch), 1});
-    } else {
-        return DecodeUTF32(std::span{std::addressof(ch), 1});
-    }
+constexpr auto DecodeUTF(IsCompatible_c auto ch) noexcept {
+    using T = ConvertCompatible_t<decltype(ch)>;
+    return DecodeUTF(std::array<T, 1>{static_cast<T>(ch)});
 }
 
 
-template <IsUTF32Compatible_c T, size_t N>
-constexpr auto DecodeUTF32(const T(&ptr)[N]) noexcept {
-    if constexpr (std::same_as<T, char32_t>) {
-        return DecodeUTF32(std::u32string_view{ptr});
-    } else if constexpr (std::same_as<T, wchar_t>) {
-        return DecodeUTF32(std::wstring_view{ptr});
-    } else {
-        return DecodeUTF32(std::span{ptr, N});
-    }
+template <IsCompatible_c Value_t, size_t N>
+constexpr auto DecodeUTF(const Value_t(&ptr)[N]) noexcept {
+    return DecodeUTF(std::span{ptr, N});
 }
 
 
-// Assumes code_point has been validated; will be converted to REPLACEMENT_CHARACTER if not valid.
-constexpr std::u8string EncodeUTF8(char32_t code_point) {
-    if (!IsCodePointValid(code_point)) { code_point = REPLACEMENT_CHARACTER; }
+// Assumes code_point has been validated; will be converted to replacement_character if not valid.
+constexpr std::u8string EncodeUTF8(char32_t code_point, char32_t replacement_character=REPLACEMENT_CHARACTER) {
+    if (!IsCodePointValid(code_point)) { code_point = replacement_character; }
     if (code_point < 0x80) {                     // 1 byte
         return std::u8string{{static_cast<char8_t>(code_point)}};
     } else if (code_point < 0x800) {             // 2 bytes
@@ -240,9 +192,9 @@ constexpr std::u8string EncodeUTF8(char32_t code_point) {
 }
 
 
-// Assumes code_point has been validated; will be converted to REPLACEMENT_CHARACTER if not valid.
-constexpr std::u16string EncodeUTF16(char32_t code_point) {
-    if (!IsCodePointValid(code_point)) { code_point = REPLACEMENT_CHARACTER; }
+// Assumes code_point has been validated; will be converted to replacement_character if not valid.
+constexpr std::u16string EncodeUTF16(char32_t code_point, char32_t replacement_character=REPLACEMENT_CHARACTER) {
+    if (!IsCodePointValid(code_point)) { code_point = replacement_character; }
     if (IsInBMP(code_point)) { return std::u16string{{static_cast<char16_t>(code_point)}}; }
     // Code points from the supplementary planes are encoded via surrogate pairs
     return std::u16string{{
@@ -252,16 +204,16 @@ constexpr std::u16string EncodeUTF16(char32_t code_point) {
 }
 
 
-constexpr std::u32string EncodeUTF32(char32_t code_point) {
-    return std::u32string{{IsCodePointValid(code_point) ? code_point : REPLACEMENT_CHARACTER}};
+constexpr std::u32string EncodeUTF32(char32_t code_point, char32_t replacement_character=REPLACEMENT_CHARACTER) {
+    return std::u32string{{IsCodePointValid(code_point) ? code_point : replacement_character}};
 }
 
 
 template <IsUTF_c T>
-constexpr std::basic_string<T> EncodeUTF(char32_t code_point) {
-    if      constexpr (std::same_as<T, char8_t>)  { return EncodeUTF8(code_point); }
-    else if constexpr (std::same_as<T, char16_t>) { return EncodeUTF16(code_point); }
-    else                                          { return EncodeUTF32(code_point); }
+constexpr std::basic_string<T> EncodeUTF(char32_t code_point, char32_t replacement_character=REPLACEMENT_CHARACTER) {
+    if      constexpr (std::same_as<T, char8_t>)  { return EncodeUTF8(code_point, replacement_character); }
+    else if constexpr (std::same_as<T, char16_t>) { return EncodeUTF16(code_point, replacement_character); }
+    else                                          { return EncodeUTF32(code_point, replacement_character); }
 }
 
 

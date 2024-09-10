@@ -46,27 +46,36 @@ template <typename T> concept IsCompatible_c = IsUTF8Compatible_c<T> ||
                                                IsUTF32Compatible_c<T>;
 
 
+template <IsCompatible_c T> struct ConvertCompatible;
+template <IsUTF8Compatible_c T>  struct ConvertCompatible<T> { using type = char8_t; };
+template <IsUTF16Compatible_c T> struct ConvertCompatible<T> { using type = char16_t; };
+template <IsUTF32Compatible_c T> struct ConvertCompatible<T> { using type = char32_t; };
+template <typename T>
+using ConvertCompatible_t = ConvertCompatible<T>::type;
+
+
 /***
  * Combine compatible types to define compatible range constaints
  */
 template <typename T>
-concept IsUTF8CompatibleRange_c = std::ranges::forward_range<T> &&
+concept IsUTF8CompatibleRange_c = std::ranges::range<T> &&
                                   IsUTF8Compatible_c<std::ranges::range_value_t<T>>;
 
 template <typename T>
-concept IsUTF16CompatibleRange_c = std::ranges::forward_range<T> &&
+concept IsUTF16CompatibleRange_c = std::ranges::range<T> &&
                                    IsUTF16Compatible_c<std::ranges::range_value_t<T>>;
 
 template <typename T>
-concept IsUTF32CompatibleRange_c = std::ranges::forward_range<T> &&
+concept IsUTF32CompatibleRange_c = std::ranges::range<T> &&
                                    IsUTF32Compatible_c<std::ranges::range_value_t<T>>;
 
 template <typename T>
-concept IsUTF32CompatibleReducedRange_c = std::ranges::forward_range<T> &&
+concept IsUTF32CompatibleReducedRange_c = std::ranges::range<T> &&
                                           IsUTF32CompatibleReduced_c<std::ranges::range_value_t<T>>;
 
 template <typename T>
-concept IsCompatibleRange_c = std::ranges::forward_range<T> && IsCompatible_c<std::ranges::range_value_t<T>>;
+concept IsCompatibleRange_c = std::ranges::range<T> &&
+                              IsCompatible_c<std::ranges::range_value_t<T>>;
 
 
 }

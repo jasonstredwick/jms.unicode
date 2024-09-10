@@ -84,3 +84,13 @@ set_target_properties(utf_utilitytest PROPERTIES
     CXX_EXTENSIONS NO
 )
 add_test(utf_utilitytest utf_utilitytest)
+
+#add_executable(bidi_basictest bidi/basic.test.cpp)
+#target_include_directories(bidi_basictest PRIVATE ${PROJECT_SOURCE_DIR}/../include)
+#target_link_libraries(bidi_basictest PRIVATE ftest)
+#set_target_properties(bidi_basictest PROPERTIES
+#    CXX_STANDARD 23
+#    CXX_STANDARD_REQUIRED YES
+#    CXX_EXTENSIONS NO
+#)
+#add_test(bidi_basictest bidi_basictest)

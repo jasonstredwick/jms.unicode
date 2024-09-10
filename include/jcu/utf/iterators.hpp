@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "jcu/utf/concepts.hpp"
+#include "jcu/utf/core.hpp"
 #include "jcu/utf/decode_encode.hpp"
 
 
@@ -67,7 +68,7 @@ struct IteratorData{
     constexpr IteratorData(const DecodeData& data, ptrdiff_t index) noexcept
         : index{index}, consumed{data.consumed}, code_point{data.code_point}, error_code{data.error_code}
         {}
-    constexpr auto& operator=(const DecodeData& data) noexcept { // utilized by ForwardIterator::operator++
+    constexpr auto& operator=(const DecodeData& data) noexcept { // utilized by Iterator::operator++
         consumed = data.consumed;
         code_point = data.code_point;
         error_code = data.error_code;
@@ -77,51 +78,80 @@ struct IteratorData{
 };
 
 
-template <IsCompatibleRange_c Range_t>
-class ForwardIterator {
-public:
-    using value_type      = IteratorData;
-    using difference_type = ptrdiff_t;
-
-    constexpr ForwardIterator() noexcept = default;
-    constexpr explicit ForwardIterator(Range_t&&) noexcept = delete;
-    constexpr explicit ForwardIterator(const Range_t& r) noexcept : rng{std::addressof(r)}, iter_data{_Decode(0), 0} {}
-    constexpr explicit ForwardIterator(Range_t&&, bool) noexcept = delete;
-    constexpr explicit ForwardIterator(const Range_t& r, bool /*sentinel*/) noexcept
-        : rng{std::addressof(r)}, iter_data{std::ssize(r)}
-        {}
-
-    friend constexpr bool operator==(const ForwardIterator& l, const ForwardIterator& r) {
-        return l.rng == r.rng && l.iter_data.index == r.iter_data.index;
+struct IterationSupport {
+    static constexpr DecodeData Decode(IsCompatibleRange_c auto const& rng, ptrdiff_t index) noexcept {
+        return DecodeUTF(std::ranges::subrange(std::ranges::next(rng.cbegin(), index, rng.cend()), rng.cend()));
     }
 
-    constexpr auto& operator++() noexcept {
-        iter_data.index = std::ranges::min(iter_data.index + iter_data.consumed, rng->size());
-        iter_data = _Decode(iter_data.index);
-        return *this;
-    }
-    constexpr auto operator++(int) noexcept { auto tmp = *this; ++*this; return tmp; }
-
-    constexpr auto operator*() const noexcept { return iter_data; }
-
-    constexpr const auto* operator->() const noexcept { return std::addressof(iter_data); }
-
-    constexpr auto base() const noexcept { return std::ranges::next(rng->begin(), iter_data.index, rng->end()); }
-
-private:
-    const Range_t* rng{nullptr};
-    IteratorData iter_data{};
-
-    constexpr DecodeData _Decode(ptrdiff_t index) const noexcept {
-        if constexpr (IsUTF8Compatible_c<std::ranges::range_value_t<Range_t>>) {
-            return DecodeUTF8(std::ranges::subrange(rng->begin() + index, rng->end()));
-        } else if constexpr (IsUTF16Compatible_c<std::ranges::range_value_t<Range_t>>) {
-            return DecodeUTF16(std::ranges::subrange(rng->begin() + index, rng->end()));
-        } else {
-            return DecodeUTF32(std::ranges::subrange(rng->begin() + index, rng->end()));
-        }
+    static constexpr void Inc(IteratorData& data, IsCompatibleRange_c auto const& rng) {
+        data.index = std::ranges::min(data.index + static_cast<ptrdiff_t>(data.consumed), std::ranges::ssize(rng));
+        data = IterationSupport::Decode(rng, data.index);
     }
 };
+
+
+template <IsCompatibleRange_c Range_t>
+class Iterator {
+public:
+    using difference_type = ptrdiff_t;
+    using value_type = char32_t;
+
+    constexpr Iterator() noexcept = default;
+    constexpr explicit Iterator(const Range_t& r, char32_t rc=REPLACEMENT_CHARACTER) noexcept
+        : rng{std::addressof(r)}, iter_data{IterationSupport::Decode(r, 0), 0}, replacement_character{rc}
+        {}
+    constexpr explicit Iterator(bool /*sentinel*/, const Range_t& r, char32_t rc=REPLACEMENT_CHARACTER) noexcept
+        : rng{std::addressof(r)}, iter_data{std::ranges::ssize(r)}, replacement_character{rc}
+        {}
+    constexpr explicit Iterator(Range_t&&, char32_t rc=REPLACEMENT_CHARACTER) noexcept = delete;
+    constexpr explicit Iterator(bool /*sentinel*/, Range_t&&, char32_t rc=REPLACEMENT_CHARACTER) noexcept = delete;
+
+    friend constexpr bool operator==(const Iterator<Range_t>& lhs, const Iterator<Range_t>& rhs) {
+        return lhs.rng == rhs.rng && lhs.iter_data.index == rhs.iter_data.index;
+    }
+
+    constexpr auto& operator++() noexcept { IterationSupport::Inc(iter_data, *rng); return *this; }
+    constexpr auto operator++(int) noexcept { auto tmp = *this; ++*this; return tmp; }
+    constexpr auto operator*() const noexcept {
+        return iter_data.error_code == DecodeError::OK ? iter_data.code_point : replacement_character;
+    }
+    constexpr auto const* operator->() const noexcept { return std::addressof(iter_data); }
+    constexpr auto base()       const noexcept { return std::ranges::next(rng->begin(), iter_data.index, rng->end()); }
+    constexpr auto base_index() const noexcept { return iter_data.index; }
+    constexpr auto consumed()   const noexcept { return iter_data.consumed; }
+    constexpr auto error_code() const noexcept { return iter_data.error_code; }
+
+protected:
+    const Range_t* rng{nullptr};
+    IteratorData iter_data{};
+    value_type replacement_character{REPLACEMENT_CHARACTER};
+};
+static_assert(std::forward_iterator<Iterator<std::string_view>>);
+
+
+template <IsCompatibleRange_c Range_t>
+class DataIterator : public Iterator<Range_t> {
+public:
+    using value_type = IteratorData;
+    using Iterator<Range_t>::Iterator;
+    constexpr auto& operator++() noexcept { Iterator<Range_t>::operator++(); return *this; }
+    constexpr auto operator++(int) noexcept { auto tmp = *this; Iterator<Range_t>::operator++(); return *this; }
+    constexpr auto operator*() const noexcept { return this->iter_data; }
+};
+static_assert(std::forward_iterator<DataIterator<std::string_view>>);
+
+// Deduction guides
+template <typename T>
+DataIterator(const T& t1) -> DataIterator<std::remove_cvref_t<T>>;
+
+template <typename T>
+DataIterator(const T& t1, char32_t t2) -> DataIterator<std::remove_cvref_t<T>>;
+
+template <typename T>
+DataIterator(bool t1, const T& t2) -> DataIterator<std::remove_cvref_t<T>>;
+
+template <typename T>
+DataIterator(bool t1, const T& t2, char32_t t3) -> DataIterator<std::remove_cvref_t<T>>;
 
 
 }
