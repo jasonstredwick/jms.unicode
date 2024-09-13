@@ -37,12 +37,6 @@ void WriteHeader(std::ofstream& out, const jcu::ucd::BidiCharacterTest& data) {
         for (auto i : v) { str += fmt(i); }
         return str.substr(0, str.size() - 2);
     };
-    auto VecToU32String = [](const auto& v) {
-        std::string str{"U\""};
-        for (auto i : v) { str += std::format("\\x{:04X}", i); }
-        str += "\"";
-        return str;
-    };
     auto MergeDescription = [](const std::vector<std::string>& desc, std::string_view spacing) {
         std::string out{};
         for (const auto& i : desc) { out += std::format("{}{}\n", spacing, i); }
@@ -55,11 +49,9 @@ R"(/*
  * DO NOT EDIT!!
  */
 
-#include <array>
 #include <cstdint>
-#include <span>
 #include <string>
-#include <string_view>
+#include <vector>
 #include "ftest.h"
 
 
@@ -74,9 +66,9 @@ enum class ParagraphDirection : uint8_t {
 };
 
 
-bool RunTest(std::u32string_view text,
-             std::span<uint8_t> levels,
-             std::span<size_t> order,
+bool RunTest(const std::vector<char32_t>& text,
+             const std::vector<uint8_t>& levels,
+             const std::vector<size_t>& order,
              ParagraphDirection paragraph_direction,
              uint8_t paragraph_level)
 {
@@ -103,14 +95,11 @@ bool RunTest(std::u32string_view text,
 
         out << std::format("TEST(BidiCharacterTests, test_{}) {{\n", std::exchange(group_count, group_count + 1));
         out << MergeDescription(group_comment, "    ");
-        for (auto [test_index, test_data] : all_test_data | std::views::enumerate) {
-            out << std::format("    std::array<uint8_t, {}> levels_{}{{{}}};\n", test_data.levels.size(), test_index, VecToString(test_data.levels, FormatDec));
-            out << std::format("    std::array<size_t, {}> order_{}{{{}}};\n", test_data.order.size(), test_index, VecToString(test_data.order, FormatDec));
-            out << std::format("    EXPECT_TRUE(RunTest({}, levels_{}, order_{}, ParagraphDirection::{}, {}));\n",
-                //VecToString(test_data.text, FormatHex),
-                VecToU32String(test_data.text),
-                test_index,
-                test_index,
+        for (const auto& test_data : all_test_data) {
+            out << std::format("    EXPECT_TRUE(RunTest({{{}}}, {{{}}}, {{{}}}, ParagraphDirection::{}, {}));\n",
+                VecToString(test_data.text, FormatHex),
+                VecToString(test_data.levels, FormatDec),
+                VecToString(test_data.order, FormatDec),
                 DirToString(test_data.paragraph_direction),
                 test_data.paragraph_level);
         }
