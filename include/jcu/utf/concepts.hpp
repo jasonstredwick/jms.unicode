@@ -46,7 +46,9 @@ template <typename T> concept IsCompatible_c = IsUTF8Compatible_c<T> ||
 template <typename T>
 concept IsUTF32CompatibleReduced_c = std::same_as<T, char32_t> ||
                                      std::same_as<T, uint32_t>;
-template <typename T> concept IsWChar_c = std::same_as<T, wchar_t>;
+
+template <typename T>
+concept IsWChar_c = std::same_as<T, wchar_t>;
 
 
 /***
@@ -61,7 +63,7 @@ using ConvertCompatible_t = ConvertCompatible<T>::type;
 
 
 /***
- * Combine compatible types to define compatible iterator constaints
+ * Combine compatible types to define compatible iterator constraints
  */
 template <typename T>
 concept IsCompatibleIterator_c = std::input_iterator<T> && IsCompatible_c<std::iter_value_t<T>>;
@@ -84,7 +86,7 @@ concept IsWCharIterator_c = std::input_iterator<T> && IsWChar_c<std::iter_value_
 
 
 /***
- * Combine compatible types to define compatible range constaints
+ * Combine compatible types to define compatible range constraints
  */
 template <typename T>
 concept IsCompatibleRange_c = std::ranges::input_range<T> && IsCompatible_c<std::ranges::range_value_t<T>>;
