@@ -6,8 +6,6 @@
 #include <exception>
 #include <stdexcept>
 
-#include "jcu/utf/core.hpp"
-
 
 namespace jcu::utf {
 
@@ -41,10 +39,6 @@ class EncodingError : public std::runtime_error {
 class DecodingError : public std::runtime_error {
     using std::runtime_error::runtime_error;
 };
-
-
-auto OnDecodeErrorThrow_f = [](DecodeError e) { throw DecodingError{ToString(e)}; };
-auto OnEncodeErrorThrow_f = [](DecodeError e) { throw EncodingError{ToString(e)}; };
 
 
 }

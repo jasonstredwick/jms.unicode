@@ -34,26 +34,25 @@ set_target_properties(utf_coretest PROPERTIES
 )
 add_test(utf_coretest utf_coretest)
 
-add_executable(utf_decodeencodetest utf/decode_encode.test.cpp)
-target_include_directories(utf_decodeencodetest PRIVATE ${PROJECT_SOURCE_DIR}/../include)
-target_link_libraries(utf_decodeencodetest PRIVATE ftest)
-set_target_properties(utf_decodeencodetest PROPERTIES
+add_executable(utf_decodetest utf/decode.test.cpp)
+target_include_directories(utf_decodetest PRIVATE ${PROJECT_SOURCE_DIR}/../include)
+target_link_libraries(utf_decodetest PRIVATE ftest)
+set_target_properties(utf_decodetest PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
-add_test(utf_decodeencodetest utf_decodeencodetest)
+add_test(utf_decodetest utf_decodetest)
 
-add_executable(utf_formattest utf/format.test.cpp)
-target_include_directories(utf_formattest PRIVATE ${PROJECT_SOURCE_DIR}/../include)
-target_link_libraries(utf_formattest PRIVATE ftest)
-set_target_properties(utf_formattest PROPERTIES
+add_executable(utf_encodetest utf/encode.test.cpp)
+target_include_directories(utf_encodetest PRIVATE ${PROJECT_SOURCE_DIR}/../include)
+target_link_libraries(utf_encodetest PRIVATE ftest)
+set_target_properties(utf_encodetest PROPERTIES
     CXX_STANDARD 23
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
-add_test(utf_formattest utf_formattest)
-
+add_test(utf_encodetest utf_encodetest)
 
 add_executable(utf_iteratorstest utf/iterators.test.cpp)
 target_include_directories(utf_iteratorstest PRIVATE ${PROJECT_SOURCE_DIR}/../include)
@@ -85,6 +84,18 @@ set_target_properties(utf_utilitytest PROPERTIES
 )
 add_test(utf_utilitytest utf_utilitytest)
 
+add_executable(utf_formattest utf/format.test.cpp)
+target_include_directories(utf_formattest PRIVATE ${PROJECT_SOURCE_DIR}/../include)
+target_link_libraries(utf_formattest PRIVATE ftest)
+set_target_properties(utf_formattest PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+)
+add_test(utf_formattest utf_formattest)
+
+
+
 #add_executable(bidi_basictest bidi/basic.test.cpp)
 #target_include_directories(bidi_basictest PRIVATE ${PROJECT_SOURCE_DIR}/../include)
 #target_link_libraries(bidi_basictest PRIVATE ftest)
@@ -94,3 +105,13 @@ add_test(utf_utilitytest utf_utilitytest)
 #    CXX_EXTENSIONS NO
 #)
 #add_test(bidi_basictest bidi_basictest)
+
+#add_executable(bidi_character_test bidi/bidi_character.test.cpp)
+#target_include_directories(bidi_character_test PRIVATE ${PROJECT_SOURCE_DIR}/../include)
+#target_link_libraries(bidi_character_test PRIVATE ftest)
+#set_target_properties(bidi_character_test PROPERTIES
+#    CXX_STANDARD 23
+#    CXX_STANDARD_REQUIRED YES
+#    CXX_EXTENSIONS NO
+#)
+#add_test(bidi_character_test bidi_character_test)

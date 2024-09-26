@@ -5,11 +5,13 @@
 
 #include <concepts>
 #include <cstddef>
+#include <iterator>
 #include <memory>
 
 #include "jcu/utf/concepts.hpp"
 #include "jcu/utf/core.hpp"
-#include "jcu/utf/decode_encode.hpp"
+#include "jcu/utf/decode.hpp"
+#include "jcu/utf/encode.hpp"
 
 
 namespace jcu::utf {
@@ -35,9 +37,9 @@ public:
 
     constexpr auto& operator=(const char32_t& code_point) {
         using T = container_type::value_type;
-        if constexpr (std::is_same_v<T, char8_t>)       { ptr->append_range(EncodeUTF8(code_point)); }
-        else if constexpr (std::is_same_v<T, char16_t>) { ptr->append_range(EncodeUTF16(code_point)); }
-        else                                            { ptr->push_back(code_point); }
+        if constexpr (std::same_as<T, char8_t>)       { ptr->append_range(EncodeUTF8(code_point)); }
+        else if constexpr (std::same_as<T, char16_t>) { ptr->append_range(EncodeUTF16(code_point)); }
+        else                                          { ptr->push_back(code_point); }
         return *this;
     }
 
@@ -55,103 +57,207 @@ constexpr auto CodePointAppender(auto& c) { return CodePointAppendIterator(c); }
 
 
 /***
- * Iterator that transforms ranges of compatible UTF types into code points.
+ * Iterator that transforms ranges of UTF compatible types into code points.
  */
-struct IteratorData{
-    ptrdiff_t index{0};
-    size_t consumed{0};
-    char32_t code_point{REPLACEMENT_CHARACTER};
-    DecodeError error_code{DecodeError::OK};
-
-    constexpr IteratorData() noexcept = default;
-    constexpr IteratorData(ptrdiff_t index) noexcept : index{index} {}
-    constexpr IteratorData(const DecodeData& data, ptrdiff_t index) noexcept
-        : index{index}, consumed{data.consumed}, code_point{data.code_point}, error_code{data.error_code}
-        {}
-    constexpr auto& operator=(const DecodeData& data) noexcept { // utilized by Iterator::operator++
-        consumed = data.consumed;
-        code_point = data.code_point;
-        error_code = data.error_code;
-        return *this;
-    }
-    friend constexpr bool operator==(const IteratorData&, const IteratorData&) noexcept = default;
-};
-
-
-struct IterationSupport {
-    static constexpr DecodeData Decode(IsCompatibleRange_c auto const& rng, ptrdiff_t index) noexcept {
-        return DecodeUTF(std::ranges::subrange(std::ranges::next(rng.cbegin(), index, rng.cend()), rng.cend()));
-    }
-
-    static constexpr void Inc(IteratorData& data, IsCompatibleRange_c auto const& rng) {
-        data.index = std::ranges::min(data.index + static_cast<ptrdiff_t>(data.consumed), std::ranges::ssize(rng));
-        data = IterationSupport::Decode(rng, data.index);
-    }
-};
-
-
-template <IsCompatibleRange_c Range_t>
-class Iterator {
+template <IsCompatibleIterator_c Iter_t, std::sentinel_for<Iter_t> Sentinel_t=Iter_t>
+class CodePointIterator {
 public:
-    using difference_type = ptrdiff_t;
     using value_type = char32_t;
-
-    constexpr Iterator() noexcept = default;
-    constexpr explicit Iterator(const Range_t& r, char32_t rc=REPLACEMENT_CHARACTER) noexcept
-        : rng{std::addressof(r)}, iter_data{IterationSupport::Decode(r, 0), 0}, replacement_character{rc}
-        {}
-    constexpr explicit Iterator(bool /*sentinel*/, const Range_t& r, char32_t rc=REPLACEMENT_CHARACTER) noexcept
-        : rng{std::addressof(r)}, iter_data{std::ranges::ssize(r)}, replacement_character{rc}
-        {}
-    constexpr explicit Iterator(Range_t&&, char32_t rc=REPLACEMENT_CHARACTER) noexcept = delete;
-    constexpr explicit Iterator(bool /*sentinel*/, Range_t&&, char32_t rc=REPLACEMENT_CHARACTER) noexcept = delete;
-
-    friend constexpr bool operator==(const Iterator<Range_t>& lhs, const Iterator<Range_t>& rhs) {
-        return lhs.rng == rhs.rng && lhs.iter_data.index == rhs.iter_data.index;
-    }
-
-    constexpr auto& operator++() noexcept { IterationSupport::Inc(iter_data, *rng); return *this; }
-    constexpr auto operator++(int) noexcept { auto tmp = *this; ++*this; return tmp; }
-    constexpr auto operator*() const noexcept {
-        return iter_data.error_code == DecodeError::OK ? iter_data.code_point : replacement_character;
-    }
-    constexpr auto const* operator->() const noexcept { return std::addressof(iter_data); }
-    constexpr auto base()       const noexcept { return std::ranges::next(rng->begin(), iter_data.index, rng->end()); }
-    constexpr auto base_index() const noexcept { return iter_data.index; }
-    constexpr auto consumed()   const noexcept { return iter_data.consumed; }
-    constexpr auto error_code() const noexcept { return iter_data.error_code; }
+    using difference_type = std::iter_difference_t<Iter_t>;
+    using iterator_type = Iter_t;
+    using sentinel_type = Sentinel_t;
 
 protected:
-    const Range_t* rng{nullptr};
-    IteratorData iter_data{};
-    value_type replacement_character{REPLACEMENT_CHARACTER};
-};
-static_assert(std::forward_iterator<Iterator<std::string_view>>);
+    using data_type = std::iter_value_t<Iter_t>;
 
+    template <IsCompatible_c T>
+    struct State {
+        iterator_type cur{};
+        sentinel_type sentinel{};
+        DecodeData<iterator_type> data{};
+    };
 
-template <IsCompatibleRange_c Range_t>
-class DataIterator : public Iterator<Range_t> {
+    template <IsUTF32CompatibleReduced_c T>
+    struct State<T> {
+        iterator_type cur{};
+    };
+
+    State<data_type> state{};
+
 public:
-    using value_type = IteratorData;
-    using Iterator<Range_t>::Iterator;
-    constexpr auto& operator++() noexcept { Iterator<Range_t>::operator++(); return *this; }
-    constexpr auto operator++(int) noexcept { auto tmp = *this; Iterator<Range_t>::operator++(); return *this; }
-    constexpr auto operator*() const noexcept { return this->iter_data; }
+    constexpr CodePointIterator() = default;
+
+    constexpr CodePointIterator(iterator_type first, sentinel_type sentinel)
+    requires IsUTF32CompatibleReduced_c<data_type>
+    : state{.cur=first}
+    {}
+
+    constexpr CodePointIterator(iterator_type first, sentinel_type sentinel)
+    requires IsCompatible_c<data_type> && (!IsUTF32CompatibleReduced_c<data_type>)
+    : state{
+        .cur=first,
+        .sentinel=sentinel,
+        .data{(first == sentinel ? DecodeData<iterator_type>{.next=first} : Decode(first, sentinel))}
+    }
+    {}
+
+    constexpr auto base() const noexcept { return state.cur; }
+
+    constexpr bool operator==(const CodePointIterator<iterator_type, sentinel_type>& rhs) const
+    requires std::forward_iterator<iterator_type>
+    {
+        if constexpr (IsUTF32CompatibleReduced_c<data_type>) {
+            return state.cur == rhs.state.cur;
+        } else {
+            return state.cur == rhs.state.cur && state.sentinel == rhs.state.sentinel;
+        }
+    }
+
+    constexpr value_type operator*() const
+    requires std::input_iterator<iterator_type>
+    {
+        if constexpr (IsUTF32CompatibleReduced_c<data_type>) {
+            return static_cast<value_type>(*state.cur);
+        } else {
+            return state.data.code_point;
+        }
+    }
+
+    constexpr auto& operator++()
+    requires std::input_iterator<iterator_type>
+    {
+        if constexpr (IsUTF32CompatibleReduced_c<data_type>) {
+            ++state.cur;
+        } else {
+            state.cur = state.data.next;
+            if (state.cur == state.sentinel) {
+                state.data = {.next=state.cur};
+            } else {
+                state.data = Decode(state.cur, state.sentinel);
+            }
+        }
+        return *this;
+    }
+
+    constexpr auto operator++(int)
+    requires std::input_iterator<iterator_type>
+    {
+        auto tmp = *this;
+        ++*this;
+        return tmp;
+    }
+
+    constexpr auto& operator--()
+    requires std::bidirectional_iterator<iterator_type> && IsUTF32CompatibleReduced_c<data_type>
+    {
+        --state.cur;
+        return *this;
+    }
+
+    constexpr auto operator--(int)
+    requires std::bidirectional_iterator<iterator_type> && IsUTF32CompatibleReduced_c<data_type>
+    {
+        auto tmp = *this;
+        --*this;
+        return tmp;
+    }
 };
-static_assert(std::forward_iterator<DataIterator<std::string_view>>);
 
-// Deduction guides
-template <typename T>
-DataIterator(const T& t1) -> DataIterator<std::remove_cvref_t<T>>;
 
-template <typename T>
-DataIterator(const T& t1, char32_t t2) -> DataIterator<std::remove_cvref_t<T>>;
+template <IsCompatibleIterator_c Iter_t, std::sentinel_for<Iter_t> Sentinel_t=Iter_t>
+class DecodeDataIterator {
+public:
+    using iterator_type = Iter_t;
+    using sentinel_type = Sentinel_t;
+    using difference_type = std::iter_difference_t<iterator_type>;
+    using value_type = DecodeData<iterator_type>;
 
-template <typename T>
-DataIterator(bool t1, const T& t2) -> DataIterator<std::remove_cvref_t<T>>;
+protected:
+    using data_type = std::iter_value_t<iterator_type>;
 
-template <typename T>
-DataIterator(bool t1, const T& t2, char32_t t3) -> DataIterator<std::remove_cvref_t<T>>;
+    struct State {
+        iterator_type cur{};
+        sentinel_type sentinel{};
+        value_type data{};
+    };
+
+    State state{};
+
+    auto _Decode(iterator_type i1, iterator_type i2) {
+        auto result = Decode(i1, i2);
+        if (result.error_code == DecodeError::OK && !IsCodePointValid(result.code_point)) {
+            result.error_code = DecodeError::INVALID_CODE_POINT;
+        }
+        return result;
+    }
+
+public:
+    constexpr DecodeDataIterator() = default;
+
+    constexpr DecodeDataIterator(iterator_type first, sentinel_type sentinel)
+    requires IsCompatible_c<data_type>
+    : state{
+        .cur=first,
+        .sentinel=sentinel,
+        .data={(first == sentinel ? value_type{.next=first} : _Decode(first, sentinel))}
+    }
+    {}
+
+    constexpr auto base() const noexcept { return state.cur; }
+
+    constexpr bool operator==(const DecodeDataIterator<iterator_type, sentinel_type>& rhs) const
+    requires std::forward_iterator<iterator_type>
+    {
+        return state.cur == rhs.state.cur && state.sentinel == rhs.state.sentinel;
+    }
+
+    constexpr value_type operator*() const
+    requires std::input_iterator<iterator_type>
+    {
+        return state.data;
+    }
+
+    constexpr const value_type* operator->() const
+    requires std::input_iterator<iterator_type>
+    {
+        return std::addressof(state.data);
+    }
+
+    constexpr auto& operator++()
+    requires std::input_iterator<iterator_type>
+    {
+        state.cur = state.data.next;
+        if (state.cur == state.sentinel) {
+            state.data = {.next=state.cur};
+        } else {
+            state.data = _Decode(state.cur, state.sentinel);
+        }
+        return *this;
+    }
+
+    constexpr auto operator++(int)
+    requires std::input_iterator<iterator_type>
+    {
+        auto tmp = *this;
+        ++*this;
+        return tmp;
+    }
+
+    constexpr auto& operator--()
+    requires std::bidirectional_iterator<iterator_type> && IsUTF32CompatibleReduced_c<data_type>
+    {
+        --state.cur;
+        return *this;
+    }
+
+    constexpr auto operator--(int)
+    requires std::bidirectional_iterator<iterator_type> && IsUTF32CompatibleReduced_c<data_type>
+    {
+        auto tmp = *this;
+        --*this;
+        return tmp;
+    }
+};
 
 
 }

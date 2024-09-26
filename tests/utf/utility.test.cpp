@@ -4,8 +4,79 @@
 #include <string_view>
 #include <vector>
 
-#include "jcu/utf/utf.hpp"
+#include "jcu/utf/views.hpp"
+#include "jcu/utf/utility.hpp"
 #include "ftest.h"
+
+
+TEST(UtilityTests, test_Utility_AttemptConvertToUTF) {
+    using namespace jcu::utf;
+    std::string valid0{"abcdxyzшницла水手𐌀"};
+    std::u8string valid1{u8"abcdxyzшницла水手𐌀"};
+    std::u16string valid2{u"abcdxyzшницла水手𐌀"};
+    std::u32string valid3{U"abcdxyzшницла水手𐌀"};
+
+    std::u8string out8{};
+    EXPECT_EQ((AttemptConvertToUTF(valid0, out8)).cur, std::ranges::cend(valid0));
+    EXPECT_EQ(out8, valid1);
+    out8.clear();
+    EXPECT_EQ((AttemptConvertToUTF(valid1, out8)).cur, std::ranges::cend(valid1));
+    EXPECT_EQ(out8, valid1);
+    out8.clear();
+    EXPECT_EQ((AttemptConvertToUTF(valid2, out8)).cur, std::ranges::cend(valid2));
+    EXPECT_EQ(out8, valid1);
+    out8.clear();
+    EXPECT_EQ((AttemptConvertToUTF(valid3, out8)).cur, std::ranges::cend(valid3));
+    EXPECT_EQ(out8, valid1);
+
+    std::u16string out16{};
+    EXPECT_EQ((AttemptConvertToUTF(valid1, out16)).cur, std::ranges::cend(valid1));
+    EXPECT_EQ(out16, valid2);
+    out16.clear();
+    EXPECT_EQ((AttemptConvertToUTF(valid2, out16)).cur, std::ranges::cend(valid2));
+    EXPECT_EQ(out16, valid2);
+    out16.clear();
+    EXPECT_EQ((AttemptConvertToUTF(valid3, out16)).cur, std::ranges::cend(valid3));
+    EXPECT_EQ(out16, valid2);
+
+    std::u32string out32{};
+    EXPECT_EQ((AttemptConvertToUTF(valid1, out32)).cur, std::ranges::cend(valid1));
+    EXPECT_EQ(out32, valid3);
+    out32.clear();
+    EXPECT_EQ((AttemptConvertToUTF(valid2, out32)).cur, std::ranges::cend(valid2));
+    EXPECT_EQ(out32, valid3);
+    out32.clear();
+    EXPECT_EQ((AttemptConvertToUTF(valid3, out32)).cur, std::ranges::cend(valid3));
+    EXPECT_EQ(out32, valid3);
+
+    // \xfa is invalid (unexpected continuation byte)
+    std::u8string invalid1{{0xe6, 0x97, 0xa5, 0xd1, 0x88, 0xfa}};
+    std::u8string invalid2{{0xe6, 0x97, 0xa5, 0xd1, 0x88, 0xfa, 0xe6, 0x97, 0xa5}};
+
+    std::u8string invalid1_test{{0xe6, 0x97, 0xa5, 0xd1, 0x88}};
+    std::u8string invalid2_test1{{0xe6, 0x97, 0xa5, 0xd1, 0x88}};
+    std::u8string invalid2_test2{{0xe6, 0x97, 0xa5, 0xd1, 0x88, 0xe6, 0x97, 0xa5}};
+
+    // Test failure
+    out8.clear();
+    auto result = AttemptConvertToUTF(invalid1, out8);
+    EXPECT_NE(result.cur, std::ranges::cend(invalid1));
+    EXPECT_EQ(result.cur, std::ranges::cbegin(invalid1) + 5);
+    EXPECT_EQ(out8, invalid1_test);
+
+    out8.clear();
+    result = AttemptConvertToUTF(invalid2, out8);
+    EXPECT_NE(result.cur, std::ranges::cend(invalid2));
+    EXPECT_EQ(result.cur, std::ranges::cbegin(invalid2) + 5);
+    EXPECT_EQ(out8, invalid2_test1);
+
+    // Test failure and continuation, removing bad code point rather than replacement.  Use ConvertToUTF if
+    // simple replacement is desired.
+    std::u8string_view invalid2a{result.next, invalid2.end()};
+    auto result2a = AttemptConvertToUTF(invalid2a, out8);
+    EXPECT_EQ(result2a.cur, std::ranges::cend(invalid2a));
+    EXPECT_EQ(out8, invalid2_test2);
+}
 
 
 TEST(UtilityTests, test_Utility_ConvertToUTF) {
@@ -136,77 +207,34 @@ TEST(UtilityTests, test_Utility_ConvertToUTF) {
 }
 
 
-TEST(UtilityTests, test_Utility_AttemptConvertToUTF) {
+TEST(UtilityTests, test_Utility_FindFirstInvalid) {
     using namespace jcu::utf;
     std::string valid0{"abcdxyzшницла水手𐌀"};
     std::u8string valid1{u8"abcdxyzшницла水手𐌀"};
     std::u16string valid2{u"abcdxyzшницла水手𐌀"};
     std::u32string valid3{U"abcdxyzшницла水手𐌀"};
 
-    std::u8string out8{};
-    EXPECT_EQ((AttemptConvertToUTF(valid0, out8)).error_code, DecodeError::OK);
-    EXPECT_EQ(out8, valid1);
-    out8.clear();
-    EXPECT_EQ((AttemptConvertToUTF(valid1, out8)).error_code, DecodeError::OK);
-    EXPECT_EQ(out8, valid1);
-    out8.clear();
-    EXPECT_EQ((AttemptConvertToUTF(valid2, out8)).error_code, DecodeError::OK);
-    EXPECT_EQ(out8, valid1);
-    out8.clear();
-    EXPECT_EQ((AttemptConvertToUTF(valid3, out8)).error_code, DecodeError::OK);
-    EXPECT_EQ(out8, valid1);
-
-    std::u16string out16{};
-    EXPECT_EQ((AttemptConvertToUTF(valid1, out16)).error_code, DecodeError::OK);
-    EXPECT_EQ(out16, valid2);
-    out16.clear();
-    EXPECT_EQ((AttemptConvertToUTF(valid2, out16)).error_code, DecodeError::OK);
-    EXPECT_EQ(out16, valid2);
-    out16.clear();
-    EXPECT_EQ((AttemptConvertToUTF(valid3, out16)).error_code, DecodeError::OK);
-    EXPECT_EQ(out16, valid2);
-
-    std::u32string out32{};
-    EXPECT_EQ((AttemptConvertToUTF(valid1, out32)).error_code, DecodeError::OK);
-    EXPECT_EQ(out32, valid3);
-    out32.clear();
-    EXPECT_EQ((AttemptConvertToUTF(valid2, out32)).error_code, DecodeError::OK);
-    EXPECT_EQ(out32, valid3);
-    out32.clear();
-    EXPECT_EQ((AttemptConvertToUTF(valid3, out32)).error_code, DecodeError::OK);
-    EXPECT_EQ(out32, valid3);
-
     // \xfa is invalid (unexpected continuation byte)
     std::u8string invalid1{{0xe6, 0x97, 0xa5, 0xd1, 0x88, 0xfa}};
     std::u8string invalid2{{0xe6, 0x97, 0xa5, 0xd1, 0x88, 0xfa, 0xe6, 0x97, 0xa5}};
+    // 0xdc07 is invalid (unexpected lead surrogate)
+    std::u16string invalid3{{0x65e5, 0x0448, 0xdc07}};
+    std::u16string invalid4{{0x65e5, 0x0448, 0xdc07, 0x65e5, 0x0448}};
+    // 0x0011ffff is invalid; beyond last possible code point
+    std::u32string invalid5{{0x000065e5, 0x00000448, 0x0011ffff}};
+    std::u32string invalid6{{0x000065e5, 0x00000448, 0x0011ffff, 0x000065e5, 0x00000448}};
 
-    // Test failure
-    out8.clear();
-    auto result = AttemptConvertToUTF(invalid1, out8);
-    EXPECT_NE(result.error_code, DecodeError::OK);
-    EXPECT_EQ(result.index, 5);
+    EXPECT_EQ(FindFirstInvalid(valid0), std::ranges::cend(valid0));
+    EXPECT_EQ(FindFirstInvalid(valid1), std::ranges::cend(valid1));
+    EXPECT_EQ(FindFirstInvalid(valid2), std::ranges::cend(valid2));
+    EXPECT_EQ(FindFirstInvalid(valid3), std::ranges::cend(valid3));
 
-    std::u8string invalid1_test{{0xe6, 0x97, 0xa5, 0xd1, 0x88}};
-    out8.clear();
-    result = AttemptConvertToUTF(invalid2, out8);
-    EXPECT_NE(result.error_code, DecodeError::OK);
-    EXPECT_EQ(result.index, 5);
-    EXPECT_EQ(out8, invalid1_test);
-
-    // Test failure and continuation, removing bad code point rather than replacement.  Use ConvertToUTF if
-    // simple replacement is desired.
-    std::u8string invalid2_test1{{0xe6, 0x97, 0xa5, 0xd1, 0x88}};
-    std::u8string invalid2_test2{{0xe6, 0x97, 0xa5, 0xd1, 0x88, 0xe6, 0x97, 0xa5}};
-    out8.clear();
-    result = AttemptConvertToUTF(invalid2, out8);
-    EXPECT_NE(result.error_code, DecodeError::OK);
-    EXPECT_EQ(result.index, 5);
-    EXPECT_EQ(out8, invalid1_test);
-    std::u8string_view invalid2a{invalid2.begin() + result.index + result.consumed, invalid2.end()};
-    result = AttemptConvertToUTF(invalid2a, out8);
-    EXPECT_EQ(result.error_code, DecodeError::OK);
-    EXPECT_EQ(result.index, std::ssize(invalid2a));
-    EXPECT_EQ(out8, invalid2_test2);
+    EXPECT_EQ(FindFirstInvalid(invalid1), std::ranges::cbegin(invalid1) + 5);
+    EXPECT_EQ(FindFirstInvalid(invalid2), std::ranges::cbegin(invalid2) + 5);
+    EXPECT_EQ(FindFirstInvalid(invalid3), std::ranges::cbegin(invalid3) + 2);
+    EXPECT_EQ(FindFirstInvalid(invalid4), std::ranges::cbegin(invalid4) + 2);
+    EXPECT_EQ(FindFirstInvalid(invalid5), std::ranges::cbegin(invalid5) + 2);
+    EXPECT_EQ(FindFirstInvalid(invalid6), std::ranges::cbegin(invalid6) + 2);
 }
 
 
@@ -237,35 +265,4 @@ TEST(UtilityTests, test_Utility_IsValid) {
     EXPECT_FALSE(IsValid(invalid4));
     EXPECT_FALSE(IsValid(invalid5));
     EXPECT_FALSE(IsValid(invalid6));
-}
-
-
-TEST(UtilityTests, test_Utility_FindFirstInvalid) {
-    using namespace jcu::utf;
-    std::string valid0{"abcdxyzшницла水手𐌀"};
-    std::u8string valid1{u8"abcdxyzшницла水手𐌀"};
-    std::u16string valid2{u"abcdxyzшницла水手𐌀"};
-    std::u32string valid3{U"abcdxyzшницла水手𐌀"};
-
-    // \xfa is invalid (unexpected continuation byte)
-    std::u8string invalid1{{0xe6, 0x97, 0xa5, 0xd1, 0x88, 0xfa}};
-    std::u8string invalid2{{0xe6, 0x97, 0xa5, 0xd1, 0x88, 0xfa, 0xe6, 0x97, 0xa5}};
-    // 0xdc07 is invalid (unexpected lead surrogate)
-    std::u16string invalid3{{0x65e5, 0x0448, 0xdc07}};
-    std::u16string invalid4{{0x65e5, 0x0448, 0xdc07, 0x65e5, 0x0448}};
-    // 0x0011ffff is invalid; beyond last possible code point
-    std::u32string invalid5{{0x000065e5, 0x00000448, 0x0011ffff}};
-    std::u32string invalid6{{0x000065e5, 0x00000448, 0x0011ffff, 0x000065e5, 0x00000448}};
-
-    EXPECT_EQ(FindFirstInvalid(valid0).index, std::ssize(valid0));
-    EXPECT_EQ(FindFirstInvalid(valid1).index, std::ssize(valid1));
-    EXPECT_EQ(FindFirstInvalid(valid2).index, std::ssize(valid2));
-    EXPECT_EQ(FindFirstInvalid(valid3).index, std::ssize(valid3));
-
-    EXPECT_EQ(FindFirstInvalid(invalid1).index, 5);
-    EXPECT_EQ(FindFirstInvalid(invalid2).index, 5);
-    EXPECT_EQ(FindFirstInvalid(invalid3).index, 2);
-    EXPECT_EQ(FindFirstInvalid(invalid4).index, 2);
-    EXPECT_EQ(FindFirstInvalid(invalid5).index, 2);
-    EXPECT_EQ(FindFirstInvalid(invalid6).index, 2);
 }

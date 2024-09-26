@@ -5,9 +5,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
+#include <type_traits>
 
 #include "jcu/constants.hpp"
+#include "jcu/utf/concepts.hpp"
 
 
 namespace jcu::utf {
@@ -19,21 +20,22 @@ enum class DecodeError : uint32_t {
     INVALID_LEAD,
     INCOMPLETE_SEQUENCE,
     OVERLONG_SEQUENCE,
-    INVALID_CODE_POINT
+    INVALID_CODE_POINT,
+    SEQUENCE_EMPTY
 };
 
 
 /***
  * Unicode constants
  */
-constexpr char8_t  TRAIL_UTF8_MIN      {0x80};
+constexpr char32_t TRAIL_UTF8_MIN      {0x80};
 
 // Leading (high) surrogates: d800 - dbff
 // Trailing (low) surrogates: dc00 - dfff
-constexpr char16_t LEAD_SURROGATE_MIN  {0xd800};
-constexpr char16_t LEAD_SURROGATE_MAX  {0xdbff};
-constexpr char16_t TRAIL_SURROGATE_MIN {0xdc00};
-constexpr char16_t TRAIL_SURROGATE_MAX {0xdfff};
+constexpr char32_t LEAD_SURROGATE_MIN  {0xd800};
+constexpr char32_t LEAD_SURROGATE_MAX  {0xdbff};
+constexpr char32_t TRAIL_SURROGATE_MIN {0xdc00};
+constexpr char32_t TRAIL_SURROGATE_MAX {0xdfff};
 constexpr char32_t LEAD_OFFSET         {0xd7c0};     // LEAD_SURROGATE_MIN - (0x10000 >> 10)
 constexpr char32_t SURROGATE_OFFSET    {0xfca02400}; // 0x10000u - (LEAD_SURROGATE_MIN << 10) - TRAIL_SURROGATE_MIN
 
@@ -47,17 +49,17 @@ constexpr char32_t REPLACEMENT_CHARACTER {0xfffd};
 /***
  * codepoint tests
  */
-constexpr bool IsTrailUTF8(char8_t ch) noexcept {
+constexpr bool IsTrailUTF8(char32_t ch) noexcept {
     return ch >= TRAIL_UTF8_MIN;
 }
 
 
-constexpr bool IsLeadSurrogateUTF16(char16_t cp) noexcept {
+constexpr bool IsLeadSurrogateUTF16(char32_t cp) noexcept {
     return cp >= LEAD_SURROGATE_MIN && cp <= LEAD_SURROGATE_MAX;
 }
 
 
-constexpr bool IsTrailSurrogateUTF16(char16_t cp) noexcept {
+constexpr bool IsTrailSurrogateUTF16(char32_t cp) noexcept {
     return cp >= TRAIL_SURROGATE_MIN && cp <= TRAIL_SURROGATE_MAX;
 }
 
@@ -77,6 +79,20 @@ constexpr bool IsInBMP(char32_t cp) noexcept {
 }
 
 
+/***
+ * codepoint utilities
+ */
+// For possible signed value ranges, need to convert to unsigned version of the same size before
+// converting to the larger unsigned type.
+constexpr char32_t Enlarge(IsCompatible_c auto cp) noexcept {
+    if constexpr (sizeof(decltype(cp)) < sizeof(char32_t) && std::is_signed_v<decltype(cp)>) {
+        return static_cast<char32_t>(static_cast<ConvertCompatible_t<decltype(cp)>>(cp));
+    } else {
+        return static_cast<char32_t>(cp);
+    }
+};
+
+
 constexpr bool IsOverlongSequence(const char32_t cp, const size_t length) noexcept {
     if (cp < 0x80) {
         if (length != 1) { return true; }
@@ -89,42 +105,17 @@ constexpr bool IsOverlongSequence(const char32_t cp, const size_t length) noexce
 }
 
 
-/***
- * codepoint utilities
- */
-constexpr size_t SequenceLength(char8_t lead_byte) noexcept {
-    if (lead_byte < 0x80) { return 1; }
-    else if ((lead_byte >> 5) == 0x6) { return 2; }
-    else if ((lead_byte >> 4) == 0xe) { return 3; }
-    else if ((lead_byte >> 3) == 0x1e) { return 4; }
+constexpr size_t SequenceLength8(char32_t cp) noexcept {
+    if (cp < 0x80) { return 1; }
+    else if ((cp >> 5) == 0x6) { return 2; }
+    else if ((cp >> 4) == 0xe) { return 3; }
+    else if ((cp >> 3) == 0x1e) { return 4; }
     return 0;
 }
 
 
-constexpr size_t SequenceLength(char16_t cp) noexcept {
+constexpr size_t SequenceLength16(char32_t cp) noexcept {
     return IsSurrogateUTF16(cp) ? 2 : 1;
-}
-
-
-constexpr std::string ToString(DecodeError e) {
-    // eventually replace with c++26 reflection
-    switch (e) {
-    case DecodeError::OK:
-        return {"OK"};
-    case DecodeError::NOT_ENOUGH_ROOM:
-        return {"Not enough room"};
-    case DecodeError::INVALID_LEAD:
-        return {"Invalid utf-16 lead surrogate"};
-    case DecodeError::INCOMPLETE_SEQUENCE:
-        return {"Incomplete sequence"};
-    case DecodeError::OVERLONG_SEQUENCE:
-        return {"overlong sequence"};
-    case DecodeError::INVALID_CODE_POINT:
-        return {"invalid codepoint"};
-    default:
-        break;
-    }
-    return {"Unknown DecodeError"};
 }
 
 

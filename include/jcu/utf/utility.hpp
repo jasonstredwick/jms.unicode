@@ -16,69 +16,85 @@
 namespace jcu::utf {
 
 
+template <typename I>
+struct AttemptedConvertResult {
+    I cur;
+    I next;
+    DecodeError error_code;
+};
+
+
+// TODO: Should I enforce std::ranges::borrowed_range to prevent dangling iterators on temporary ranges?
 template <IsUTF_c Dst_t>
-constexpr IteratorData AttemptConvertToUTF(IsCompatibleRange_c auto && rng,
-                                           std::basic_string<Dst_t>& dst,
-                                           char32_t replacement_character=REPLACEMENT_CHARACTER) {
-    DataView src_view{rng, replacement_character};
+constexpr auto AttemptConvertToUTF(IsCompatibleRange_c auto&& rng, std::basic_string<Dst_t>& dst) {
+    DecodeDataView view{rng};
     auto out_it = CodePointAppender(dst);
-    for (auto it=src_view.begin(); it!=src_view.end(); ++it) {
-        if (it->error_code != DecodeError::OK) { return *it; }
+    for (auto it=view.begin(); it!=view.end(); ++it) {
+        if (it->error_code != DecodeError::OK) {
+            return AttemptedConvertResult{
+                .cur=it.base(),
+                .next=it->next,
+                .error_code=it->error_code
+            };
+        }
         out_it = it->code_point;
     }
-    return {std::ranges::ssize(rng)};
+    return AttemptedConvertResult{
+        .cur=std::ranges::cend(rng),
+        .next=std::ranges::cend(rng),
+        .error_code=DecodeError::OK
+    };
 }
 
 
-// Assumes input is validated; will replace invalid code points with REPLACEMENT_CHARACTER.
-// User can consider using shrink_to_fit to reduce overall allocated size if concerned about footprint.
+// Assumes input is not validated; will replace invalid code points with REPLACEMENT_CHARACTER.
 template <IsCompatibleRange_c Range_t, IsUTF_c Dst_t>
 constexpr std::basic_string<Dst_t> ConvertToUTF(const Range_t& rng,
-                                                char32_t replacement_character=REPLACEMENT_CHARACTER) {
+                                                char32_t replacement_character=REPLACEMENT_CHARACTER,
+                                                bool reserve=false) {
     std::basic_string<Dst_t> result{};
-    result.reserve(std::ranges::size(rng));
-    std::ranges::copy(View{rng, replacement_character}, CodePointAppender(result));
+    auto view = CodePointView{rng};
+    if (reserve) { result.reserve(std::ranges::distance(view)); }
+    std::ranges::copy(view | ReplaceInvalid(replacement_character), CodePointAppender(result));
     return result;
 }
 
 
-constexpr auto ConvertToUTF8(IsCompatibleRange_c auto && rng, char32_t replacement_character=REPLACEMENT_CHARACTER)  {
-    return ConvertToUTF<decltype(rng), char8_t>(rng, replacement_character);
+constexpr auto ConvertToUTF8(IsCompatibleRange_c auto && rng,
+                             char32_t replacement_character=REPLACEMENT_CHARACTER,
+                             bool reserve=false)  {
+    return ConvertToUTF<decltype(rng), char8_t>(rng, replacement_character, reserve);
 }
 
 
-constexpr auto ConvertToUTF16(IsCompatibleRange_c auto && rng, char32_t replacement_character=REPLACEMENT_CHARACTER) {
-    return ConvertToUTF<decltype(rng), char16_t>(rng, replacement_character);
+constexpr auto ConvertToUTF16(IsCompatibleRange_c auto && rng,
+                              char32_t replacement_character=REPLACEMENT_CHARACTER,
+                              bool reserve=false) {
+    return ConvertToUTF<decltype(rng), char16_t>(rng, replacement_character, reserve);
 }
 
 
-constexpr auto ConvertToUTF32(IsCompatibleRange_c auto && rng, char32_t replacement_character=REPLACEMENT_CHARACTER) {
-    return ConvertToUTF<decltype(rng), char32_t>(rng, replacement_character);
+constexpr auto ConvertToUTF32(IsCompatibleRange_c auto && rng,
+                              char32_t replacement_character=REPLACEMENT_CHARACTER,
+                              bool reserve=false) {
+    return ConvertToUTF<decltype(rng), char32_t>(rng, replacement_character, reserve);
 }
 
 
-constexpr bool Empty(IsCompatibleRange_c auto && rng) {
-    View view{rng};
-    return rng.begin() == rng.end();
-}
-
-
+// TODO: Should I enforce std::ranges::borrowed_range to prevent dangling iterators on temporary ranges?
 constexpr auto FindFirstInvalid(IsCompatibleRange_c auto && rng) {
     auto IsOK_f = [](auto v) { return v == DecodeError::OK; };
-    DataView view{rng};
-    auto it = std::ranges::find_if_not(view, IsOK_f, &IteratorData::error_code);
-    return *it;
+    DecodeDataView view{rng};
+    using Data = std::ranges::range_value_t<decltype(view)>;
+    auto it = std::ranges::find_if_not(view, IsOK_f, &Data::error_code);
+    return it.base();
 }
 
 
 constexpr bool IsValid(IsCompatibleRange_c auto && rng) {
     auto IsOK_f = [](auto v) { return v == DecodeError::OK; };
-    return std::ranges::all_of(DataView{rng}, IsOK_f, &IteratorData::error_code);
-}
-
-
-constexpr auto Length32(IsCompatibleRange_c auto && rng) {
-    return std::ranges::count_if(View{rng}, [](auto) { return true; });
+    using Data = std::ranges::range_value_t<decltype(DecodeDataView{rng})>;
+    return std::ranges::all_of(DecodeDataView{rng}, IsOK_f, &Data::error_code);
 }
 
 

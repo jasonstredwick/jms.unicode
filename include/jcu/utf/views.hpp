@@ -3,8 +3,10 @@
 #pragma once
 
 
+#include <algorithm>
+#include <array>
 #include <concepts>
-#include <cstddef>
+#include <iterator>
 #include <ranges>
 
 #include "jcu/utf/concepts.hpp"
@@ -14,45 +16,121 @@
 namespace jcu::utf {
 
 
-template <IsCompatibleRange_c Range_t>
-struct SubrangeType {
-    using type = std::ranges::subrange<
-        decltype(std::declval<Range_t>().cbegin()),
-        decltype(std::declval<Range_t>().cend())>;
-};
-template <IsCompatibleRange_c Range_t> using SubrangeType_t = SubrangeType<Range_t>::type;
+/***
+ * Views
+ */
+template <typename T>
+class CodePointView : public std::ranges::view_interface<CodePointView<T>> {
+    using range_type = std::conditional_t<std::is_pointer_v<T>, std::remove_pointer_t<std::remove_const_t<T>>, T>;
+    using base_type = std::ranges::range_value_t<range_type>;
 
+    T rng;
 
-template <typename Range_t, template<typename> typename Iter_t>
-concept ViewIter_c = std::same_as<Iter_t<SubrangeType_t<Range_t>>, Iterator<SubrangeType_t<Range_t>>> ||
-                     std::same_as<Iter_t<SubrangeType_t<Range_t>>, DataIterator<SubrangeType_t<Range_t>>>;
-
-
-template <IsCompatibleRange_c R, template<typename> typename Iter_t>
-requires ViewIter_c<R, Iter_t>
-class ViewBase : public std::ranges::view_interface<ViewBase<R, Iter_t>> {
 public:
-    using Range_t = R;
-    using Subrange_t = typename SubrangeType_t<Range_t>;
+    template <IsCompatible_c U, size_t N>
+    constexpr CodePointView(const U(&ptr)[N]) : rng{ptr, (N && ptr[N-1] != static_cast<U>('\0')) ? N : N - 1} {}
 
-    constexpr explicit ViewBase(const Range_t& r, char32_t rc=REPLACEMENT_CHARACTER) noexcept
-        : subrange{r.cbegin(), r.cend()}, replacement_character{rc}
-        {}
-    constexpr explicit ViewBase(Range_t&&, char32_t rc=REPLACEMENT_CHARACTER) noexcept = delete;
+    template <IsCompatibleRange_c Range_t>
+    constexpr CodePointView(const Range_t& r) : rng{std::addressof(r)} {}
 
-    friend constexpr bool operator==(const ViewBase&, const ViewBase&) = default;
+    constexpr auto begin() const {
+        if constexpr (std::same_as<char32_t, base_type>) {
+            return std::ranges::cbegin(base());
+        } else {
+            return CodePointIterator{std::ranges::cbegin(base()), std::ranges::cend(base())};
+        }
+    }
 
-    constexpr auto begin() const noexcept { return Iter_t<Subrange_t>{subrange, replacement_character}; }
-    constexpr auto end() const noexcept { return Iter_t<Subrange_t>{true, subrange, replacement_character}; }
+    constexpr auto end() const {
+        if constexpr (std::same_as<char32_t, base_type>) {
+            return std::ranges::cend(base());
+        } else {
+            return CodePointIterator{std::ranges::cend(base()), std::ranges::cend(base())};
+        }
+    }
 
-private:
-    Subrange_t subrange{};
-    char32_t replacement_character{REPLACEMENT_CHARACTER};
+    constexpr const auto& base() const {
+        if constexpr (std::is_pointer_v<T>) { return *rng; }
+        else { return rng; }
+    }
 };
 
+// Deduction guides
+template <IsCompatible_c U, size_t N>  CodePointView(const U(&)[N])  -> CodePointView<std::span<const U>>;
+template <IsCompatibleRange_c Range_t> CodePointView(const Range_t&) -> CodePointView<const Range_t*>;
 
-template <IsCompatibleRange_c Range_t> using View = ViewBase<Range_t, Iterator>;
-template <IsCompatibleRange_c Range_t> using DataView = ViewBase<Range_t, DataIterator>;
+
+template <typename T>
+class DecodeDataView : public std::ranges::view_interface<DecodeDataView<T>> {
+    using range_type = std::conditional_t<std::is_pointer_v<T>, std::remove_pointer_t<std::remove_const_t<T>>, T>;
+    using base_type = std::ranges::range_value_t<range_type>;
+
+    T rng;
+
+public:
+    template <IsCompatible_c U, size_t N>
+    constexpr DecodeDataView(const U(&ptr)[N]) : rng{ptr, (N && ptr[N-1] != static_cast<U>('\0')) ? N : N - 1} {}
+
+    template <IsCompatibleRange_c Range_t>
+    constexpr DecodeDataView(const Range_t& r) : rng{std::addressof(r)} {}
+
+    constexpr auto begin() const {
+        return DecodeDataIterator{std::ranges::cbegin(base()), std::ranges::cend(base())};
+    }
+
+    constexpr auto end() const {
+        return DecodeDataIterator{std::ranges::cend(base()), std::ranges::cend(base())};
+    }
+
+    constexpr const auto& base() const {
+        if constexpr (std::is_pointer_v<T>) { return *rng; }
+        else { return rng; }
+    }
+};
+
+// Deduction guides
+template <IsCompatible_c U, size_t N>  DecodeDataView(const U(&)[N])  -> DecodeDataView<std::span<const U>>;
+template <IsCompatibleRange_c Range_t> DecodeDataView(const Range_t&) -> DecodeDataView<const Range_t*>;
+
+
+/***
+ * Range adaptors
+ */
+class ReplaceInvalid : public std::ranges::range_adaptor_closure<ReplaceInvalid> {
+    char32_t replacement_character{REPLACEMENT_CHARACTER};
+
+public:
+    constexpr ReplaceInvalid() noexcept = default;
+    constexpr ReplaceInvalid(char32_t replacement_character) noexcept : replacement_character{replacement_character} {}
+
+    constexpr auto operator()(IsCompatibleRange_c auto && rng) {
+        return std::views::transform(std::forward<decltype(rng)>(rng), [rc=replacement_character](char32_t cp) {
+            return IsCodePointValid(cp) ? cp : rc;
+        });
+    }
+
+    template <typename T>
+    constexpr auto operator()(const DecodeDataView<T>& rng) {
+        auto Transform_f = [rc=replacement_character](const auto& data) {
+            return IsCodePointValid(data.code_point) ? data.code_point : rc;
+        };
+        return std::views::transform(std::forward<decltype(rng)>(rng), Transform_f);
+    }
+};
 
 
 }
+
+
+// Mark CodePointView as a borrowed range depending on the underlying range borrowed-ness
+template<typename T>
+constexpr bool std::ranges::enable_borrowed_range<jcu::utf::CodePointView<T>> =
+    std::ranges::enable_borrowed_range<
+        std::conditional_t<std::is_pointer_v<T>, std::remove_pointer_t<std::remove_const_t<T>>, T>>;
+
+
+// Mark DecodeDataView as a borrowed range depending on the underlying range borrowed-ness
+template<typename T>
+constexpr bool std::ranges::enable_borrowed_range<jcu::utf::DecodeDataView<T>> =
+    std::ranges::enable_borrowed_range<
+        std::conditional_t<std::is_pointer_v<T>, std::remove_pointer_t<std::remove_const_t<T>>, T>>;
