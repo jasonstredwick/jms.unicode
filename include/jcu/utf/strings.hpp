@@ -6,7 +6,6 @@
 #include <string>
 
 #include "jcu/utf/core.hpp"
-#include "jcu/utf/exceptions.hpp"
 
 
 namespace jcu::utf {
@@ -34,10 +33,6 @@ constexpr std::string ToString(DecodeError e) {
     }
     return "Unknown DecodeError";
 }
-
-
-auto OnDecodeErrorThrow_f = [](DecodeError e) { throw DecodingError{ToString(e)}; };
-auto OnEncodeErrorThrow_f = [](DecodeError e) { throw EncodingError{ToString(e)}; };
 
 
 }
