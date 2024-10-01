@@ -16,7 +16,7 @@
 #include "jcu/ucd/base_iterator.hpp"
 #include "jcu/unicode_version.hpp"
 #include "jcu/script.hpp"
-#include "jcu/script_strings.hpp"
+#include "jcu/strings/script.hpp"
 #include "jcu/constants.hpp"
 
 

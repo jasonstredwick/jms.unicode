@@ -42,6 +42,12 @@ void WriteHeader(std::ofstream& out, const jcu::ucd::BidiCharacterTest& data) {
         for (const auto& i : desc) { out += std::format("{}{}\n", spacing, i); }
         return out;
     };
+    auto VecToU32String = [](const auto& v) {
+        std::string str{"U\""};
+        for (auto i : v) { str += std::format("\\x{:04X}", i); }
+        str += std::string{"\""};
+        return str;
+    };
 
     out <<
 R"(/*
@@ -49,6 +55,7 @@ R"(/*
  * DO NOT EDIT!!
  */
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -66,20 +73,30 @@ enum class ParagraphDirection : uint8_t {
 };
 
 
-bool RunTest(const std::vector<char32_t>& text,
-             const std::vector<uint8_t>& levels,
-             const std::vector<size_t>& order,
-             ParagraphDirection paragraph_direction,
-             uint8_t paragraph_level)
+struct TestData {
+    ptrdiff_t index;
+    std::u32string input;
+    std::vector<uint8_t> levels;
+    std::vector<size_t> order;
+    ParagraphDirection paragraph_direction;
+    uint8_t paragraph_level;
+};
+
+
+bool RunTest(const TestData& test_data)
 {
     return true;
 }
+
+
 )";
 
+out << std::format("std::array<TestData, {}> TEST_DATA{{\n", data.Size());
 
     int group_count = 0;
     const auto& group_comment_map = data.GroupComments();
     const auto& section_comment_map = data.SectionComments();
+    //out << std::format("TEST(BidiCharacterTests, test_0) {{\n");
     for (auto group_it = group_comment_map.begin(); group_it != group_comment_map.end(); ++group_it) {
         auto [group_index, group_comment] = *group_it;
 
@@ -93,18 +110,29 @@ bool RunTest(const std::vector<char32_t>& text,
         size_t next_it_index = next_it == group_comment_map.end() ? data.Size() : next_it->first;
         std::ranges::subrange all_test_data(data.begin() + group_index, data.begin() + next_it_index);
 
-        out << std::format("TEST(BidiCharacterTests, test_{}) {{\n", std::exchange(group_count, group_count + 1));
+        //out << std::format("TEST(BidiCharacterTests, test_{}) {{\n", std::exchange(group_count, group_count + 1));
         out << MergeDescription(group_comment, "    ");
         for (const auto& test_data : all_test_data) {
-            out << std::format("    EXPECT_TRUE(RunTest({{{}}}, {{{}}}, {{{}}}, ParagraphDirection::{}, {}));\n",
-                VecToString(test_data.text, FormatHex),
+            out << std::format("{{{}, {}, {{{}}}, {{{}}}, ParagraphDirection::{}, {}}},\n",
+            //out << std::format("    EXPECT_TRUE(RunTest({{{}}}, {{{}}}, {{{}}}, ParagraphDirection::{}, {}));\n",
+                0,
+                VecToU32String(test_data.text),
                 VecToString(test_data.levels, FormatDec),
                 VecToString(test_data.order, FormatDec),
                 DirToString(test_data.paragraph_direction),
                 test_data.paragraph_level);
         }
-        out << std::format("}}\n");
     }
+
+    out <<
+R"(};
+
+
+TEST(BidiCharacterTests, test_0) {
+    EXPECT_TRUE(true);
+}
+)";
+//    out << std::format("}}\n");
 }
 
 

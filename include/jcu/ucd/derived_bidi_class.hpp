@@ -14,9 +14,9 @@
 
 #include <ctre.hpp>
 
-#include "jcu/bidi/bidi_type.hpp"
-#include "jcu/bidi/bidi_type_strings.hpp"
 #include "jcu/constants.hpp"
+#include "jcu/bidi/bidi_type.hpp"
+#include "jcu/strings/bidi_type.hpp"
 #include "jcu/ucd/base_iterator.hpp"
 #include "jcu/unicode_version.hpp"
 

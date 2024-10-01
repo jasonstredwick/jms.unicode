@@ -9,7 +9,7 @@
 #include <string_view>
 #include <utility>
 
-#include "jcu/script_strings.hpp"
+#include "jcu/strings/script.hpp"
 #include "jcu/ucd/scripts.hpp"
 #include "jcu/utf/format.hpp"
 
@@ -18,7 +18,7 @@ namespace jcu::code_gen {
 
 
 std::filesystem::path Path(const jcu::ucd::Scripts&, const std::filesystem::path& root) {
-    return root / "jcu" / "script_data.hpp";
+    return root / "jcu" / "data" / "script.hpp";
 }
 
 

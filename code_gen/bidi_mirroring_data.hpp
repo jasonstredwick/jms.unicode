@@ -17,7 +17,7 @@ namespace jcu::code_gen {
 
 
 std::filesystem::path Path(const jcu::ucd::BidiMirroring&, const std::filesystem::path& root) {
-    return root / "jcu" / "bidi" / "mirroring_data.hpp";
+    return root / "jcu" / "data" / "mirroring.hpp";
 }
 
 

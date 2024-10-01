@@ -12,7 +12,7 @@
 #include <utility>
 
 #include "jcu/ucd/derived_general_category.hpp"
-#include "jcu/general_category_strings.hpp"
+#include "jcu/strings/general_category.hpp"
 #include "jcu/utf/format.hpp"
 
 
@@ -20,7 +20,7 @@ namespace jcu::code_gen {
 
 
 std::filesystem::path Path(const jcu::ucd::DerivedGeneralCategory&, const std::filesystem::path& root) {
-    return root / "jcu" / "general_category_data.hpp";
+    return root / "jcu" / "data" / "general_category.hpp";
 }
 
 

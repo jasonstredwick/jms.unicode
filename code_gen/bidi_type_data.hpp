@@ -8,7 +8,7 @@
 #include <fstream>
 #include <string_view>
 
-#include "jcu/bidi/bidi_type_strings.hpp"
+#include "jcu/strings/bidi_type.hpp"
 #include "jcu/ucd/derived_bidi_class.hpp"
 #include "jcu/utf/format.hpp"
 
@@ -17,7 +17,7 @@ namespace jcu::code_gen {
 
 
 std::filesystem::path Path(const jcu::ucd::DerivedBidiClass&, const std::filesystem::path& root) {
-    return root / "jcu" / "bidi" / "bidi_type_data.hpp";
+    return root / "jcu" / "data" / "bidi_type.hpp";
 }
 
 

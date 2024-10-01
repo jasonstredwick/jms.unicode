@@ -17,7 +17,7 @@
 
 #include "jcu/constants.hpp"
 #include "jcu/general_category.hpp"
-#include "jcu/general_category_strings.hpp"
+#include "jcu/strings/general_category.hpp"
 #include "jcu/ucd/base_iterator.hpp"
 #include "jcu/unicode_version.hpp"
 
