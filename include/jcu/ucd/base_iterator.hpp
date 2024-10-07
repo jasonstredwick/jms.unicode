@@ -38,33 +38,25 @@ public:
 
     friend bool operator==(const FileIterator<value_type, Derived_t>& lhs,
                            const FileIterator<value_type, Derived_t>& rhs) {
-        if (lhs.is_sentinel || rhs.is_sentinel) {
-            return (lhs.is_sentinel && rhs.is_sentinel) ||
-                   (lhs.is_sentinel && rhs.is_done) ||
-                   (lhs.is_done && rhs.is_sentinel);
-        }
-
+        if (lhs.is_sentinel && rhs.is_sentinel) { return true; }
         int is_open = static_cast<int>(lhs.fs.is_open()) + static_cast<int>(rhs.fs.is_open());
         if (lhs.is_done != rhs.is_done || is_open == 1 || lhs.line_num != rhs.line_num) { return false; }
         return lhs.file_path == rhs.file_path;
     }
 
-    auto& operator++(this FileIterator& self) {
-        while (std::getline(self.fs, self.buffer)) {
-            ++self.line_num;
-            if (self.AcceptLine()) { break; }
-        }
-
-        if      (self.fs.rdstate() & std::ios_base::eofbit)  { self.is_done = true; }
-        else if (self.fs.rdstate() & std::ios_base::failbit) {
-            throw std::runtime_error{std::format("Unexpected line of data ({}): {}", self.line_num, self.buffer)};
-        }
-
-        self.data = self.is_done ? value_type{} : self.ProcessLine();
-        return dynamic_cast<derived_type&>(self);
+    auto& operator++() {
+        // Because the data is loaded in advance, the iterator is a "step" behind the file cursor.  If the data
+        // consumed by ProcessLine goes all the way to the end of the file then is_done would be set true and the user
+        // would think the range is complete without processing the last read data.  What we really want to know is
+        // when incrementing ReadLines takes you to the end of the file (or is already there) signaling there is
+        // nothing to process.
+        ReadLines([this]() { return this->AcceptLine(); });
+        if (is_done) { is_sentinel = true; }
+        data = is_done ? value_type{} : ProcessLine();
+        return dynamic_cast<derived_type&>(*this);
     }
 
-    auto operator++(this FileIterator& self, int) {
+    auto operator++(this auto& self, int) {
         auto tmp = dynamic_cast<derived_type&>(self);
         ++self;
         return tmp;
@@ -106,6 +98,18 @@ protected:
             // tellg can set the failure bit; ok to throw exception
             auto* ifs = const_cast<std::ifstream*>(std::addressof(rhs.fs));
             self.fs.seekg(ifs->tellg(), std::ios::beg);
+        }
+    }
+
+    void ReadLines(auto AcceptFunc) {
+        if (is_done) { return; }
+        while (std::getline(fs, buffer)) {
+            ++line_num;
+            if (AcceptFunc()) { break; }
+        }
+        if      (fs.rdstate() & std::ios_base::eofbit)  { is_done = true; }
+        else if (fs.rdstate() & std::ios_base::failbit) {
+            throw std::runtime_error{std::format("Unexpected line of data ({}): {}", line_num, buffer)};
         }
     }
 };
