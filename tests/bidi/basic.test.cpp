@@ -1,6 +1,5 @@
 // Copyright © 2014-2022 Muhammad Tayyab Akram
 
-#include <print>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,51 +13,72 @@
 TEST(BidiTests, test_Basic) {
     using namespace jcu;
     using namespace jcu::bidi;
-#if 0
-    /* Create code point sequence for a sample bidirectional text. */
-    std::u32string_view bidi_text{U"یہ ایک )car( ہے۔"};
-    std::vector<Run> runs = ToRuns(bidi_text);
-    for (auto& run : runs) {
-        std::println("Run{}: {} {}", run.level, run.offset, run.length);
+
+    {
+        std::u32string_view bidi_text{U"hello"};
+        jcu::utf::CodePointView view{bidi_text};
+        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_LTR);
+        if (runs.size() == 1) {
+            EXPECT_EQ(runs[0].level, 0);
+            EXPECT_EQ(runs[0].offset, 0);
+            EXPECT_EQ(runs[0].length, 5);
+        } else {
+            EXPECT_FALSE(true);
+        }
     }
-#endif
-    EXPECT_TRUE(true);
+
+    {
+        std::u32string_view bidi_text{U"یہ ایک ہے۔"};
+        jcu::utf::CodePointView view{bidi_text};
+        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_LTR);
+        if (runs.size() == 1) {
+            EXPECT_EQ(runs[0].level, 1);
+            EXPECT_EQ(runs[0].offset, 0);
+            EXPECT_EQ(runs[0].length, 10);
+        } else {
+            EXPECT_FALSE(true);
+        }
+    }
+
+    {
+        std::u32string_view bidi_text{U"یہ ایک car ہے۔"};
+        jcu::utf::CodePointView view{bidi_text};
+        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_LTR);
+        if (runs.size() == 3) {
+            EXPECT_EQ(runs[0].level, 1);
+            EXPECT_EQ(runs[0].offset, 10);
+            EXPECT_EQ(runs[0].length, 4);
+
+            EXPECT_EQ(runs[1].level, 2);
+            EXPECT_EQ(runs[1].offset, 7);
+            EXPECT_EQ(runs[1].length, 3);
+
+            EXPECT_EQ(runs[2].level, 1);
+            EXPECT_EQ(runs[2].offset, 0);
+            EXPECT_EQ(runs[2].length, 7);
+        } else {
+            EXPECT_FALSE(true);
+        }
+    }
+
+    {
+        std::u32string_view bidi_text{U"یہ ایک )car( ہے۔"};
+        jcu::utf::CodePointView view{bidi_text};
+        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_LTR);
+        if (runs.size() == 3) {
+            EXPECT_EQ(runs[0].level, 1);
+            EXPECT_EQ(runs[0].offset, 11);
+            EXPECT_EQ(runs[0].length, 5);
+
+            EXPECT_EQ(runs[1].level, 2);
+            EXPECT_EQ(runs[1].offset, 8);
+            EXPECT_EQ(runs[1].length, 3);
+
+            EXPECT_EQ(runs[2].level, 1);
+            EXPECT_EQ(runs[2].offset, 0);
+            EXPECT_EQ(runs[2].length, 8);
+        } else {
+            EXPECT_FALSE(true);
+        }
+    }
 }
-
-
-#if 0
-    /* Extract the first bidirectional paragraph. */
-    SBAlgorithmRef bidiAlgorithm = SBAlgorithmCreate(&codepointSequence);
-    SBParagraphRef firstParagraph = SBAlgorithmCreateParagraph(bidiAlgorithm, 0, INT32_MAX, SBLevelDefaultLTR);
-    SBUInteger paragraphLength = SBParagraphGetLength(firstParagraph);
-
-    /* Create a line consisting of whole paragraph and get its runs. */
-    SBLineRef paragraphLine = SBParagraphCreateLine(firstParagraph, 0, paragraphLength);
-    SBUInteger runCount = SBLineGetRunCount(paragraphLine);
-    const SBRun *runArray = SBLineGetRunsPtr(paragraphLine);
-
-    /* Log the details of each run in the line. */
-    for (SBUInteger i = 0; i < runCount; i++) {
-        printf("Run Offset: %ld\n", (long)runArray[i].offset);
-        printf("Run Length: %ld\n", (long)runArray[i].length);
-        printf("Run Level: %ld\n\n", (long)runArray[i].level);
-    }
-
-    /* Create a mirror locator and load the line in it. */
-    SBMirrorLocatorRef mirrorLocator = SBMirrorLocatorCreate();
-    SBMirrorLocatorLoadLine(mirrorLocator, paragraphLine, (void *)bidiText);
-    const SBMirrorAgent *mirrorAgent = SBMirrorLocatorGetAgent(mirrorLocator);
-
-    /* Log the details of each mirror in the line. */
-    while (SBMirrorLocatorMoveNext(mirrorLocator)) {
-        printf("Mirror Index: %ld\n", (long)mirrorAgent->index);
-        printf("Actual Code Point: %ld\n", (long)mirrorAgent->codepoint);
-        printf("Mirrored Code Point: %ld\n\n", (long)mirrorAgent->mirror);
-    }
-
-    /* Release all objects. */
-    SBMirrorLocatorRelease(mirrorLocator);
-    SBLineRelease(paragraphLine);
-    SBParagraphRelease(firstParagraph);
-    SBAlgorithmRelease(bidiAlgorithm);
-#endif
