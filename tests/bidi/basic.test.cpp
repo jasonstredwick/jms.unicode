@@ -17,7 +17,7 @@ TEST(BidiTests, test_Basic) {
     {
         std::u32string_view bidi_text{U"hello"};
         jcu::utf::CodePointView view{bidi_text};
-        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_LTR);
+        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_AUTO);
         if (runs.size() == 1) {
             EXPECT_EQ(runs[0].level, 0);
             EXPECT_EQ(runs[0].offset, 0);
@@ -30,7 +30,7 @@ TEST(BidiTests, test_Basic) {
     {
         std::u32string_view bidi_text{U"یہ ایک ہے۔"};
         jcu::utf::CodePointView view{bidi_text};
-        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_LTR);
+        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_AUTO);
         if (runs.size() == 1) {
             EXPECT_EQ(runs[0].level, 1);
             EXPECT_EQ(runs[0].offset, 0);
@@ -43,7 +43,7 @@ TEST(BidiTests, test_Basic) {
     {
         std::u32string_view bidi_text{U"یہ ایک car ہے۔"};
         jcu::utf::CodePointView view{bidi_text};
-        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_LTR);
+        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_AUTO);
         if (runs.size() == 3) {
             EXPECT_EQ(runs[0].level, 1);
             EXPECT_EQ(runs[0].offset, 10);
@@ -64,7 +64,7 @@ TEST(BidiTests, test_Basic) {
     {
         std::u32string_view bidi_text{U"یہ ایک )car( ہے۔"};
         jcu::utf::CodePointView view{bidi_text};
-        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_LTR);
+        std::vector<Run> runs = ToRuns(view, LEVEL_TYPE_DEFAULT_AUTO);
         if (runs.size() == 3) {
             EXPECT_EQ(runs[0].level, 1);
             EXPECT_EQ(runs[0].offset, 11);
