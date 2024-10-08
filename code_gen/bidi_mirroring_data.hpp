@@ -51,7 +51,7 @@ public:
     static constexpr value_type Lookup(char32_t code_point) noexcept {
         auto it = std::ranges::lower_bound(data, code_point, {}, &Data::code_point);
         if (it == data.end() || it->code_point != code_point) { return std::numeric_limits<char32_t>::max(); }
-        return std::ranges::prev(it)->value;
+        return it->value;
     }
 
     static constexpr const UnicodeVersion &Version() noexcept { return version; }
