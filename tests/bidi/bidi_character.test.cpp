@@ -1,7 +1,9 @@
 // Copyright © 2024 Jason Stredwick
 
+#include <filesystem>
 #include <format>
 #include <iostream>
+#include <print>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,49 +16,51 @@
 
 
 TEST(BidiTests, test_BidiCharacterTest) {
-    /* Create code point sequence for a sample bidirectional text. */
-    std::u32string_view bidi_text{U"یہ ایک )car( ہے۔"};
-    std::vector<jcu::bidi::Run> runs = jcu::bidi::ToRuns(bidi_text);
-    //for (auto& run : runs) {
-    //    std::cout << std::format("Run{}: {} {}", run.level, run.offset, run.length);
-    //}
-    EXPECT_TRUE(true);
+    // Create code point sequence for a sample bidirectional text.
+    try {
+        auto path = std::filesystem::path{".."} / ".." / "data" / jcu::ucd::BidiCharacterTest::FILE_NAME;
+        if (!std::filesystem::exists(path)) {
+            std::println("Could not find test data: {}", path.generic_string());
+            status = ftest::Failed;
+            return;
+        }
+
+        int failures = 0;
+        jcu::ucd::BidiCharacterTestFileIterator it{path, jcu::ucd::BidiCharacterTest::OPEN_MODE};
+        jcu::ucd::BidiCharacterTestFileIterator end{true};
+        for (; it != end; ++it) {
+            auto [text, levels, order, paragraph_direction, paragraph_level, line_num] = *it;
+
+            auto base_level = jcu::bidi::LEVEL_TYPE_DEFAULT_AUTO;
+            if (paragraph_direction == jcu::ucd::ParagraphDirection::LTR) {
+                base_level = jcu::bidi::LEVEL_TYPE_LTR;
+            } else if (paragraph_direction == jcu::ucd::ParagraphDirection::RTL) {
+                base_level = jcu::bidi::LEVEL_TYPE_RTL;
+            }
+
+            std::vector<jcu::bidi::Run> runs = jcu::bidi::ToRuns(text, base_level);
+
+            std::vector<uint8_t> final_levels(text.size(), jcu::bidi::LEVEL_TYPE_INVALID);
+            for (auto& run : runs) {
+                std::ranges::fill(std::ranges::next(final_levels.begin(), run.offset, final_levels.end()),
+                                  std::ranges::next(final_levels.begin(), run.offset + run.length, final_levels.end()),
+                                  run.level);
+            }
+
+            bool result = std::ranges::equal(final_levels, levels, [](auto lhs, auto rhs) {
+                return rhs == 255 || lhs == rhs;
+            });
+            if (!result) {
+                for (auto i : final_levels) { std::print("{} ", i); } std::println("");
+                for (auto i : levels) { std::print("{} ", i); } std::println("");
+                failures++;
+                std::println("Line {} : Failed", line_num);
+                status = ftest::Failed;
+            }
+
+            if (failures >= 10) { break; }
+        }
+    } catch (const std::exception& e) {
+        std::println("\n\nException caught:\n{}\n\n", e.what());
+    }
 }
-
-
-#if 0
-    /* Extract the first bidirectional paragraph. */
-    SBAlgorithmRef bidiAlgorithm = SBAlgorithmCreate(&codepointSequence);
-    SBParagraphRef firstParagraph = SBAlgorithmCreateParagraph(bidiAlgorithm, 0, INT32_MAX, SBLevelDefaultLTR);
-    SBUInteger paragraphLength = SBParagraphGetLength(firstParagraph);
-
-    /* Create a line consisting of whole paragraph and get its runs. */
-    SBLineRef paragraphLine = SBParagraphCreateLine(firstParagraph, 0, paragraphLength);
-    SBUInteger runCount = SBLineGetRunCount(paragraphLine);
-    const SBRun *runArray = SBLineGetRunsPtr(paragraphLine);
-
-    /* Log the details of each run in the line. */
-    for (SBUInteger i = 0; i < runCount; i++) {
-        printf("Run Offset: %ld\n", (long)runArray[i].offset);
-        printf("Run Length: %ld\n", (long)runArray[i].length);
-        printf("Run Level: %ld\n\n", (long)runArray[i].level);
-    }
-
-    /* Create a mirror locator and load the line in it. */
-    SBMirrorLocatorRef mirrorLocator = SBMirrorLocatorCreate();
-    SBMirrorLocatorLoadLine(mirrorLocator, paragraphLine, (void *)bidiText);
-    const SBMirrorAgent *mirrorAgent = SBMirrorLocatorGetAgent(mirrorLocator);
-
-    /* Log the details of each mirror in the line. */
-    while (SBMirrorLocatorMoveNext(mirrorLocator)) {
-        printf("Mirror Index: %ld\n", (long)mirrorAgent->index);
-        printf("Actual Code Point: %ld\n", (long)mirrorAgent->codepoint);
-        printf("Mirrored Code Point: %ld\n\n", (long)mirrorAgent->mirror);
-    }
-
-    /* Release all objects. */
-    SBMirrorLocatorRelease(mirrorLocator);
-    SBLineRelease(paragraphLine);
-    SBParagraphRelease(firstParagraph);
-    SBAlgorithmRelease(bidiAlgorithm);
-#endif

@@ -108,12 +108,12 @@ set_target_properties(bidi_basictest PROPERTIES
 )
 add_test(bidi_basictest bidi_basictest)
 
-#add_executable(bidi_character_test bidi/bidi_character.test.cpp)
-#target_include_directories(bidi_character_test PRIVATE ${PROJECT_SOURCE_DIR}/../include)
-#target_link_libraries(bidi_character_test PRIVATE ftest)
-#set_target_properties(bidi_character_test PROPERTIES
-#    CXX_STANDARD 23
-#    CXX_STANDARD_REQUIRED YES
-#    CXX_EXTENSIONS NO
-#)
-#add_test(bidi_character_test bidi_character_test)
+add_executable(bidi_character_test bidi/bidi_character.test.cpp)
+target_include_directories(bidi_character_test PRIVATE ${PROJECT_SOURCE_DIR}/../include)
+target_link_libraries(bidi_character_test PRIVATE ftest)
+set_target_properties(bidi_character_test PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
+)
+add_test(bidi_character_test bidi_character_test)
