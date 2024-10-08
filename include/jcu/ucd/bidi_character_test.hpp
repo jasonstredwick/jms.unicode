@@ -33,85 +33,24 @@ enum class ParagraphDirection : uint8_t {
 };
 
 
-struct TestData {
+struct BidiCharacterTestUnit {
     std::vector<char32_t> text{};
     std::vector<uint8_t> levels{};
     std::vector<size_t> order{};
     ParagraphDirection paragraph_direction{ParagraphDirection::INVALID};
     uint8_t paragraph_level{0};
-};
-
-
-struct BidiCharacterTestUnit {
-    struct TestGroup {
-        std::vector<std::string> description{};
-        std::vector<TestData> tests{};
-    };
-
-    std::vector<std::string> description{};
-    std::vector<TestGroup> groups{};
+    size_t line_num{0};
 };
 
 
 class BidiCharacterTestFileIterator : public FileIterator<BidiCharacterTestUnit, BidiCharacterTestFileIterator> {
 protected:
-    static constexpr auto REGEX_SECTION_HEADER = ctre::match<"^[#]{5}.*$">;
+    bool AcceptLine() const noexcept override { return !buffer.empty() && buffer[0] != '#'; }
 
-    bool AcceptLine() const noexcept override { return true; }
+    BidiCharacterTestUnit ProcessLine() override { return ParseTest(); }
 
-    BidiCharacterTestUnit ProcessLine() override {
-        BidiCharacterTestUnit unit{.description=ProcessSectionHeader()};
-
-        do {
-            BidiCharacterTestUnit::TestGroup group{
-                .description=ProcessDescription(),
-                .tests=ProcessTests()
-            };
-            if (group.tests.empty()) { continue; }
-            unit.groups.push_back(std::move(group));
-        } while (!is_done && !REGEX_SECTION_HEADER(buffer));
-
-        return unit;
-    }
-
-    std::vector<std::string> ProcessSectionHeader() {
-        std::vector<std::string> desc{};
-        desc.push_back("/***");
-        for (; !is_done && !buffer.empty() && buffer[0] == '#'; ReadLines([]() { return true; })) {
-            std::string line{" *"};
-            line.append_range(std::string_view{buffer.begin() + 1, buffer.end()});
-            desc.push_back(std::move(line));
-        }
-        desc.push_back(" */");
-        if (buffer.empty()) { ReadLines([this]() { return !buffer.empty(); }); }
-        return desc;
-    }
-
-    std::vector<std::string> ProcessDescription() {
-        std::vector<std::string> desc{};
-        for (; !is_done; ReadLines([]() { return true; })) {
-            if (!buffer.empty() && buffer[0] != '#') { break; }
-
-            std::string line{"//"};
-            if (!buffer.empty()) { line.append_range(std::string_view{buffer.begin() + 1, buffer.end()}); }
-            desc.push_back(std::move(line));
-        }
-        return desc;
-    }
-
-    std::vector<TestData> ProcessTests() {
-        std::vector<TestData> tests{};
-        for (; !is_done; ReadLines([]() { return true; })) {
-            if (buffer.empty()) { continue; }
-            else if (buffer[0] == '#') { break; }
-            tests.push_back(ParseTest());
-        }
-        if (buffer.empty()) { ReadLines([this]() { return !buffer.empty(); }); }
-        return tests;
-    }
-
-    TestData ParseTest() const {
-        TestData data{};
+    BidiCharacterTestUnit ParseTest() const {
+        BidiCharacterTestUnit data{.line_num=GetLineNum()};
 
         auto columns = buffer |
                        std::views::split(';') |
@@ -159,20 +98,13 @@ public:
 
     BidiCharacterTestFileIterator(const std::filesystem::path& path, std::ios_base::openmode mode)
     : FileIterator{path, mode}
-    {
-        buffer.reserve(4096);
-        // Skip header comments ending on the first test denoted by multiple pound symbols.
-        ReadLines([this]() -> bool { return BidiCharacterTestFileIterator::REGEX_SECTION_HEADER(buffer); });
-        Init();
-    }
+    { Init(); }
 };
 static_assert(std::forward_iterator<BidiCharacterTestFileIterator>);
 
 
 class BidiCharacterTest {
-    std::vector<TestData> test_data{};
-    std::map<size_t, std::vector<std::string>> group_comments{};
-    std::map<size_t, std::vector<std::string>> section_comments{};
+    std::vector<BidiCharacterTestUnit> data{};
     UnicodeVersion version{};
 
 public:
@@ -184,28 +116,20 @@ public:
     {
         BidiCharacterTestFileIterator it{directory / FILE_NAME, OPEN_MODE};
         BidiCharacterTestFileIterator end{true};
-        test_data.reserve(4096); // estimate for doubling purposes.
-        int count = 0;
-        for (; it != end; ++it) {
-            section_comments[test_data.size()] = it->description;
-            for (const auto& group : it->groups) {
-                group_comments[test_data.size()] = group.description;
-                std::ranges::transform(group.tests, std::back_inserter(test_data), std::identity{});
-            }
-        }
+        data.reserve(4096); // estimate for doubling purposes.
+        std::ranges::transform(it, end, std::back_inserter(data), std::identity{});
     }
 
-    auto begin() const noexcept { return test_data.cbegin(); }
-    auto end() const noexcept { return test_data.cend(); }
+    auto begin() const noexcept { return data.cbegin(); }
+    auto end() const noexcept { return data.cend(); }
 
-    auto cbegin() const noexcept { return test_data.cbegin(); }
-    auto cend() const noexcept { return test_data.cend(); }
+    auto cbegin() const noexcept { return data.cbegin(); }
+    auto cend() const noexcept { return data.cend(); }
 
-    const auto& GetTestCase(size_t index) const { return test_data.at(index); }
-    const auto& TestData() const noexcept { return test_data; }
-    const auto& GroupComments() const noexcept { return group_comments; }
-    const auto& SectionComments() const noexcept { return section_comments; }
-    size_t Size() const noexcept { return test_data.size(); }
+    const auto& GetTestCase(size_t index) const { return data.at(index); }
+
+    size_t Size() const noexcept { return data.size(); }
+
     const UnicodeVersion &Version() const { return version; }
 };
 
