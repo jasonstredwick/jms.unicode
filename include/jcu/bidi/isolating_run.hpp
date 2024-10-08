@@ -156,7 +156,7 @@ private:
             switch (type) {
             case BidiType::ON:
             {
-                char32_t code_point = code_points.at(static_cast<size_t>(link));
+                char32_t code_point = code_points.at(static_cast<size_t>(link - 1));
                 auto [paired_code_point, bracket_type] = BracketData::Lookup(code_point);
                 switch (bracket_type) {
                 case BracketPairedType::OPEN:
