@@ -73,8 +73,8 @@ struct LevelRun {
         /* The next run must be unattached. */
         assert(!IsRunKindAttached(next_run.kind));
 
-        if (IsRunKindTerminating(next_run.kind)) { MakeRunKindAttached(next_run.kind); }
-        if (IsRunKindIsolate(kind)) { MakeRunKindComplete(kind); }
+        if (IsRunKindTerminating(next_run.kind)) { next_run.kind = MakeRunKindAttached(next_run.kind); }
+        if (IsRunKindIsolate(kind)) { kind = MakeRunKindComplete(kind); }
         next = std::addressof(next_run);
     }
 };

@@ -43,19 +43,19 @@ struct RunQueue {
 
         // Complete the latest isolating run with this terminating run.
         if (partial_index >= 0 && IsRunKindTerminating(level_run.kind)) {
-            auto it_partial = level_run_deque.begin();
-            std::ranges::advance(it_partial, partial_index, level_run_deque.end());
+            auto it_partial = std::ranges::next(level_run_deque.begin(), partial_index, level_run_deque.end());
+
             it_partial->Attach(level_run);
 
             // find previous partial isolate run
             auto rev_it = std::ranges::find_if(std::make_reverse_iterator(it_partial),
                                                level_run_deque.rend(),
                                                IsRunKindPartialIsolate, &LevelRun::kind);
-            if (rev_it == level_run_deque.rend()) {
+            if (rev_it != level_run_deque.rend()) {
+                partial_index = std::ranges::distance(level_run_deque.begin(), rev_it.base()) - 1;
+            } else {
                 partial_index = -1;
                 should_dequeue = false;
-            } else {
-                partial_index = std::ranges::distance(level_run_deque.begin(), rev_it.base());
             }
         }
 

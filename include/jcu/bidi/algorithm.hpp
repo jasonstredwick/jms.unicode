@@ -33,7 +33,7 @@ BidiLink SkipIsolatingRun(const BidiChain&, BidiLink, BidiLink);
 
 
 std::vector<Run> ToRuns(jcu::utf::IsCompatibleRange_c auto&& code_points_rng,
-                        BidiLevel base_level=LEVEL_TYPE_DEFAULT_LTR,
+                        BidiLevel base_level=LEVEL_TYPE_DEFAULT_AUTO,
                         bool reserve=false) {
     if (code_points_rng.begin() == code_points_rng.end()) { return {}; }
 
@@ -54,7 +54,7 @@ std::vector<Run> ToRuns(jcu::utf::IsCompatibleRange_c auto&& code_points_rng,
         resolved_level = DetermineBaseLevel(bidi_chain,
                                             bidi_chain.Roller(),
                                             bidi_chain.Roller(),
-                                            (base_level != LEVEL_TYPE_DEFAULT_RTL ? 0 : 1),
+                                            (base_level == LEVEL_TYPE_DEFAULT_RTL ? 1 : 0),
                                             false);
     }
 
@@ -66,7 +66,7 @@ std::vector<Run> ToRuns(jcu::utf::IsCompatibleRange_c auto&& code_points_rng,
     // Save levels
     std::vector<BidiLevel> levels(bidi_types.size(), LEVEL_TYPE_INVALID);
     BidiLevel level = resolved_level;
-    size_t index = 0; // skip first entry - nil starter value?; SaveLevels(&context->bidiChain, ++paragraph->fixedLevels, resolvedLevel);
+    size_t index = 0; // SaveLevels(&context->bidiChain, ++paragraph->fixedLevels, resolvedLevel);
     const BidiLink roller = bidi_chain.Roller();
     for (BidiLink link = bidi_chain.links[roller]; link != roller; link = bidi_chain.links[link]) {
         size_t offset = BidiChainGetOffset(link);
