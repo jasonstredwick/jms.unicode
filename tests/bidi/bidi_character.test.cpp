@@ -19,15 +19,10 @@ TEST(BidiTests, test_BidiCharacterTest) {
     // Create code point sequence for a sample bidirectional text.
     int tests_run = 0;
     try {
-        auto path = std::filesystem::path{".."} / ".." / "data" / jcu::ucd::BidiCharacterTest::FILE_NAME;
-        if (!std::filesystem::exists(path)) {
-            std::println("Could not find test data: {}", path.generic_string());
-            status = ftest::Failed;
-            return;
-        }
+        jcu::ucd::BidiCharacterTestInputRange rng{std::filesystem::path{".."} / ".." / "data"};
 
-        jcu::ucd::BidiCharacterTestFileIterator it{path, jcu::ucd::BidiCharacterTest::OPEN_MODE};
-        jcu::ucd::BidiCharacterTestFileIterator end{true};
+        auto it = rng.begin();
+        auto end = rng.end();
         for (int failures = 0; it != end && failures < 10; ++it) {
             auto [text, levels, order, paragraph_direction, paragraph_level, line_num] = *it;
             ++tests_run;

@@ -103,32 +103,23 @@ public:
 static_assert(std::forward_iterator<BidiCharacterTestFileIterator>);
 
 
-class BidiCharacterTest {
-    std::vector<BidiCharacterTestUnit> data{};
+class BidiCharacterTestInputRange {
     UnicodeVersion version{};
+    std::filesystem::path file_path{};
 
 public:
     static constexpr const char* FILE_NAME = "BidiCharacterTest.txt";
     static const std::ios_base::openmode OPEN_MODE = std::ios::in | std::ios::binary;
 
-    BidiCharacterTest(const std::filesystem::path& directory)
-    : version{ExtractVersion(directory / FILE_NAME, OPEN_MODE)}
-    {
-        BidiCharacterTestFileIterator it{directory / FILE_NAME, OPEN_MODE};
-        BidiCharacterTestFileIterator end{true};
-        data.reserve(4096); // estimate for doubling purposes.
-        std::ranges::transform(it, end, std::back_inserter(data), std::identity{});
-    }
+    BidiCharacterTestInputRange(const std::filesystem::path& directory)
+    : version{ExtractVersion(directory / FILE_NAME, OPEN_MODE)}, file_path{directory / FILE_NAME}
+    {}
 
-    auto begin() const noexcept { return data.cbegin(); }
-    auto end() const noexcept { return data.cend(); }
+    auto begin() const noexcept { return BidiCharacterTestFileIterator{file_path, OPEN_MODE}; }
+    auto end() const noexcept { return BidiCharacterTestFileIterator{true}; }
 
-    auto cbegin() const noexcept { return data.cbegin(); }
-    auto cend() const noexcept { return data.cend(); }
-
-    const auto& GetTestCase(size_t index) const { return data.at(index); }
-
-    size_t Size() const noexcept { return data.size(); }
+    auto cbegin() const noexcept { return BidiCharacterTestFileIterator{file_path, OPEN_MODE}; }
+    auto cend() const noexcept { return BidiCharacterTestFileIterator{true}; }
 
     const UnicodeVersion &Version() const { return version; }
 };
