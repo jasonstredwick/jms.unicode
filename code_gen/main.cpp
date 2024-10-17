@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "jcu/ucd/bidi_brackets.hpp"
-//#include "jcu/ucd/bidi_character_test.hpp"
 #include "jcu/ucd/bidi_mirroring.hpp"
 #include "jcu/ucd/derived_bidi_class.hpp"
 #include "jcu/ucd/derived_general_category.hpp"
@@ -21,7 +20,6 @@
 #include "jcu/utf/format.hpp"
 
 #include "bidi_bracket_data.hpp"
-//#include "bidi_character_test.hpp"
 #include "bidi_mirroring_data.hpp"
 #include "bidi_type_data.hpp"
 #include "general_category_data.hpp"
@@ -35,7 +33,6 @@ using namespace jcu::ucd;
 
 std::map<std::string_view, int> targets{
     {"BidiBracketData", 0},
-//    {"BidiCharacterTest", 0},
     {"BidiMirroringData", 0},
     {"BidiTypeData", 0},
     {"GeneralCategoryData", 0},
@@ -96,7 +93,6 @@ int main(int argc, const char** argv) {
         std::print("Generating {} ... ", k);
         try {
             if      (k == "BidiBracketData")     { Write(BidiBrackets{data_path}, include_path); }
-            //else if (k == "BidiCharacterTest")   { Write(BidiCharacterTest{data_path}, test_path); }
             else if (k == "BidiMirroringData")   { Write(BidiMirroring{data_path}, include_path); }
             else if (k == "BidiTypeData")        { Write(DerivedBidiClass{data_path}, include_path); }
             else if (k == "GeneralCategoryData") { Write(DerivedGeneralCategory{data_path}, include_path); }
