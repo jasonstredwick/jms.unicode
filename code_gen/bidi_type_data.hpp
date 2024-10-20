@@ -75,7 +75,7 @@ private:
 
     for (; it != it_end; ++it) {
         out << std::format("        Data{{.code_point={:#x}, .value=value_type::{}}}{}\n",
-                           it->code_point, ToString(it->value), (it == it_last ? "" : ","));
+                           it->code_point, jcu::strings::bidi_type::ToString(it->value), (it == it_last ? "" : ","));
     }
 
     out <<

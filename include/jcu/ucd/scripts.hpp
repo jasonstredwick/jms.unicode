@@ -113,7 +113,7 @@ public:
         std::ranges::for_each(it, end, [&all_scripts, &script_names=this->script_names](auto&& unit) mutable {
             auto result = MISSING_REGEX(unit.script_name);
             std::string_view script_name_sv = result.get<1>().to_view();
-            Script script = ScriptFromString(script_name_sv);
+            Script script = jcu::strings::script::FromString(script_name_sv);
             size_t start = static_cast<size_t>(unit.code_point_first);
             size_t last  = static_cast<size_t>(unit.code_point_last);
             for (auto i : std::views::iota(start, last + 1)) { all_scripts.at(i) = script; }
@@ -132,8 +132,8 @@ public:
         data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .value=Script::NIL});
     }
 
-    auto begin() const noexcept { return data.cbegin(); }
-    auto end() const noexcept { return data.cend(); }
+    auto begin() const { return data.cbegin(); }
+    auto end() const { return data.cend(); }
 
     Script ToScript(char32_t code_point) const {
         if (data.empty()) { return Script::NIL; }

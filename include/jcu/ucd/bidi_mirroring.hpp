@@ -83,8 +83,8 @@ public:
            std::ranges::to<std::map>()}
     {}
 
-    auto begin() const noexcept { return data.cbegin(); }
-    auto end() const noexcept { return data.cend(); }
+    auto begin() const { return data.cbegin(); }
+    auto end() const { return data.cend(); }
 
     char32_t MirrorFor(char32_t code_point) const noexcept {
         if (auto it = data.find(code_point); it != data.end()) { return it->second; }

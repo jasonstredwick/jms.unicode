@@ -115,11 +115,11 @@ public:
     : version{ExtractVersion(directory / FILE_NAME, OPEN_MODE)}, file_path{directory / FILE_NAME}
     {}
 
-    auto begin() const noexcept { return BidiCharacterTestFileIterator{file_path, OPEN_MODE}; }
-    auto end() const noexcept { return BidiCharacterTestFileIterator{true}; }
+    auto begin() const { return BidiCharacterTestFileIterator{file_path, OPEN_MODE}; }
+    auto end() const { return BidiCharacterTestFileIterator{true}; }
 
-    auto cbegin() const noexcept { return BidiCharacterTestFileIterator{file_path, OPEN_MODE}; }
-    auto cend() const noexcept { return BidiCharacterTestFileIterator{true}; }
+    auto cbegin() const { return BidiCharacterTestFileIterator{file_path, OPEN_MODE}; }
+    auto cend() const { return BidiCharacterTestFileIterator{true}; }
 
     const UnicodeVersion &Version() const { return version; }
 };

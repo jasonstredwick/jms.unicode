@@ -87,8 +87,8 @@ public:
         });
     }
 
-    auto begin() const noexcept { return data.cbegin(); }
-    auto end() const noexcept { return data.cend(); }
+    auto begin() const { return data.cbegin(); }
+    auto end() const { return data.cend(); }
 
     const std::vector<PropertyValueUnit>& GetPropertyValues(const std::string& property) const noexcept {
         if (auto it = data.find(property); it != data.end()) { return it->second; }

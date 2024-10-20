@@ -45,7 +45,7 @@ std::vector<Run> ToRuns(jcu::utf::IsCompatibleRange_c auto&& code_points_rng,
     } else {
         if (reserve) { bidi_types.reserve(std::ranges::distance(code_points_view)); }
     }
-    std::ranges::transform(code_points_view, std::back_inserter(bidi_types), BidiTypeData::Lookup);
+    std::ranges::transform(code_points_view, std::back_inserter(bidi_types), jcu::data::DerivedBidiClass::Lookup);
 
     BidiChain bidi_chain{bidi_types};
 

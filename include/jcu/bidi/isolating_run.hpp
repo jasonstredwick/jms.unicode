@@ -157,14 +157,14 @@ private:
             case BidiType::ON:
             {
                 char32_t code_point = code_points.at(static_cast<size_t>(link - 1));
-                auto [paired_code_point, bracket_type] = BracketData::Lookup(code_point);
+                auto [paired_code_point, bracket_type] = jcu::data::BidiBrackets::Lookup(code_point);
                 switch (bracket_type) {
-                case BracketPairedType::OPEN:
+                case jcu::data::BracketPairedType::OPEN:
                     if (bracket_queue.Full()) { is_done = true; }
                     else { bracket_queue.Enqueue(prior_strong_link, link, paired_code_point); }
                     break;
 
-                case BracketPairedType::CLOSE:
+                case jcu::data::BracketPairedType::CLOSE:
                     if (!bracket_queue.Empty()) {
                         bracket_queue.ClosePair(link, code_point);
                         if (bracket_queue.ShouldDequeue()) {

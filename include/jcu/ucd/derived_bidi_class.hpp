@@ -122,7 +122,7 @@ public:
         std::vector all_bidi_types(jcu::CODE_POINT_MAX + 1, jcu::bidi::BidiType::NIL);
         std::ranges::for_each(it, end, [&all_bidi_types](auto&& unit) mutable {
             auto result = MISSING_REGEX(unit.bidi_type);
-            auto bidi_type = jcu::bidi::BidiTypeFromString(result.get<1>().to_view());
+            auto bidi_type = jcu::strings::bidi_type::FromString(result.get<1>().to_view());
             size_t start = static_cast<size_t>(unit.code_point_first);
             size_t last  = static_cast<size_t>(unit.code_point_last);
             for (auto i : std::views::iota(start, last + 1)) { all_bidi_types.at(i) = bidi_type; }
@@ -140,8 +140,8 @@ public:
         data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .value=jcu::bidi::BidiType::NIL});
     }
 
-    auto begin() const noexcept { return data.cbegin(); }
-    auto end() const noexcept { return data.cend(); }
+    auto begin() const { return data.cbegin(); }
+    auto end() const { return data.cend(); }
 
     auto ToBidiType(char32_t code_point) const {
         if (data.empty()) { return jcu::bidi::BidiType::NIL; }

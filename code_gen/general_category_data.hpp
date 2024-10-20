@@ -77,7 +77,7 @@ private:
     out << std::format("    static constexpr std::array<Data, {}> data{{{{\n", std::ranges::distance(it, it_end));
 
     for (; it != it_end; ++it) {
-        std::string name = ToString(it->value);
+        std::string name = jcu::strings::general_category::ToString(it->value);
         std::ranges::transform(name, name.begin(), [](char ch) {
             // must cast to unsigned of the same size prior to casting to int.
             return static_cast<char>(std::toupper(static_cast<int>(static_cast<unsigned char>(ch))));

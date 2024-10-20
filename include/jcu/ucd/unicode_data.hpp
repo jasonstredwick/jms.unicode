@@ -96,8 +96,8 @@ public:
         std::ranges::transform(it, end, std::back_inserter(data), std::identity{});
     }
 
-    auto begin() const noexcept { return data.cbegin(); }
-    auto end() const noexcept { return data.cend(); }
+    auto begin() const { return data.cbegin(); }
+    auto end() const { return data.cend(); }
 
     char32_t FirstCodePoint() const { return data.front().code_point; }
     char32_t LastCodePoint() const { return data.back().code_point; }

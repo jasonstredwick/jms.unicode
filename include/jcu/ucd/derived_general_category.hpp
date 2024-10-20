@@ -91,7 +91,7 @@ public:
 
         std::vector<GeneralCategory> all_general_categories(jcu::CODE_POINT_MAX + 1, GeneralCategory::NIL);
         std::ranges::for_each(it, end, [&all_general_categories](auto&& unit) mutable {
-            GeneralCategory general_category = GeneralCategoryFromString(unit.general_category);
+            GeneralCategory general_category = jcu::strings::general_category::FromString(unit.general_category);
             size_t start = static_cast<size_t>(unit.code_point_first);
             size_t last  = static_cast<size_t>(unit.code_point_last);
             for (auto i : std::views::iota(start, last + 1)) { all_general_categories.at(i) = general_category; }
@@ -109,8 +109,8 @@ public:
         data.push_back({.code_point=(jcu::CODE_POINT_MAX + 1), .value=GeneralCategory::NIL});
     }
 
-    auto begin() const noexcept { return data.cbegin(); }
-    auto end() const noexcept { return data.cend(); }
+    auto begin() const { return data.cbegin(); }
+    auto end() const { return data.cend(); }
 
     GeneralCategory ToGeneralCategory(char32_t code_point) const {
         if (data.empty()) { return GeneralCategory::NIL; }
