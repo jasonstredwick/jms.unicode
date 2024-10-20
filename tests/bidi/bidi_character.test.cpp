@@ -19,7 +19,7 @@ TEST(BidiTests, test_BidiCharacterTest) {
     // Create code point sequence for a sample bidirectional text.
     int tests_run = 0;
     try {
-        jcu::ucd::BidiCharacterTestInputRange rng{std::filesystem::path{".."} / ".." / "data"};
+        jcu::ucd::BidiCharacterTestForwardView rng{std::filesystem::path{".."} / ".." / "data"};
 
         auto it = rng.begin();
         auto end = rng.end();

@@ -103,7 +103,7 @@ public:
 static_assert(std::forward_iterator<BidiCharacterTestFileIterator>);
 
 
-class BidiCharacterTestInputRange {
+class BidiCharacterTestForwardView {
     UnicodeVersion version{};
     std::filesystem::path file_path{};
 
@@ -111,7 +111,7 @@ public:
     static constexpr const char* FILE_NAME = "BidiCharacterTest.txt";
     static const std::ios_base::openmode OPEN_MODE = std::ios::in | std::ios::binary;
 
-    BidiCharacterTestInputRange(const std::filesystem::path& directory)
+    BidiCharacterTestForwardView(const std::filesystem::path& directory)
     : version{ExtractVersion(directory / FILE_NAME, OPEN_MODE)}, file_path{directory / FILE_NAME}
     {}
 
