@@ -38,12 +38,12 @@ R"(/*
 #include "jcu/unicode_version.hpp"
 
 
-namespace jcu::bidi {
+namespace jcu::data {
 
 
-class BidiTypeData {
+class DerivedBidiClass {
 public:
-    using value_type = BidiType;
+    using value_type = jcu::bidi::BidiType;
 
     static constexpr auto begin() noexcept { return data.cbegin(); }
     static constexpr auto end() noexcept { return data.cend(); }

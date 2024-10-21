@@ -38,7 +38,7 @@ R"(/*
 #include "jcu/unicode_version.hpp"
 
 
-namespace jcu::bidi {
+namespace jcu::data {
 
 
 enum class BracketPairedType : uint8_t {
@@ -48,15 +48,15 @@ enum class BracketPairedType : uint8_t {
 };
 
 
-struct BracketDataUnit {
+struct BidiBracketsUnit {
     char32_t paired_code_point{0};
     BracketPairedType bracket_paired_type{BracketPairedType::NONE};
 };
 
 
-class BracketData {
+class BidiBrackets {
 public:
-    using value_type = BracketDataUnit;
+    using value_type = BidiBracketsUnit;
 
     static constexpr auto begin() noexcept { return data.cbegin(); }
     static constexpr auto end() noexcept { return data.cend(); }

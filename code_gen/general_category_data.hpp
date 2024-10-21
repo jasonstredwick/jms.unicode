@@ -41,12 +41,12 @@ R"(/*
 #include "jcu/unicode_version.hpp"
 
 
-namespace jcu {
+namespace jcu::data {
 
 
 class GeneralCategoryData {
 public:
-    using value_type = GeneralCategory;
+    using value_type = jcu::GeneralCategory;
 
     static constexpr auto begin() noexcept { return data.cbegin(); }
     static constexpr auto end() noexcept { return data.cend(); }

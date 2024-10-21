@@ -39,12 +39,12 @@ R"(/*
 #include "jcu/unicode_version.hpp"
 
 
-namespace jcu {
+namespace jcu::data {
 
 
 class ScriptData {
 public:
-    using value_type = Script;
+    using value_type = jcu::Script;
 
     static constexpr auto begin() noexcept { return data.cbegin(); }
     static constexpr auto end() noexcept { return data.cend(); }
@@ -76,7 +76,7 @@ private:
 
     for (; it != it_end; ++it) {
         out << std::format("        Data{{.code_point={:#x}, .value=value_type::{}}}{}\n",
-                           it->code_point, ToAliasString(it->value), (it == it_last ? "" : ","));
+                           it->code_point, jcu::strings::script::ToAliasString(it->value), (it == it_last ? "" : ","));
     }
 
     out <<

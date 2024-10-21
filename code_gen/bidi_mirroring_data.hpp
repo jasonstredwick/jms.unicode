@@ -38,7 +38,7 @@ R"(/*
 #include "jcu/unicode_version.hpp"
 
 
-namespace jcu::bidi {
+namespace jcu::data {
 
 
 class MirroringData {
