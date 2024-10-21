@@ -16,7 +16,7 @@
 namespace jcu::data {
 
 
-class GeneralCategoryData {
+class DerivedGeneralCategory {
 public:
     using value_type = jcu::GeneralCategory;
 

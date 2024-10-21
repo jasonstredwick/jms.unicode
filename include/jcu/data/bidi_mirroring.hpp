@@ -16,7 +16,7 @@
 namespace jcu::data {
 
 
-class MirroringData {
+class BidiMirroring {
 public:
     using value_type = char32_t;
 

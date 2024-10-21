@@ -16,7 +16,7 @@
 namespace jcu::data {
 
 
-class ScriptData {
+class Scripts {
 public:
     using value_type = jcu::Script;
 
