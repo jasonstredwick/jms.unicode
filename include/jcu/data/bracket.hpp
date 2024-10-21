@@ -50,7 +50,7 @@ private:
         value_type value;
     };
 
-    static constexpr UnicodeVersion version{.major=15, .minor=1, .micro=0};
+    static constexpr UnicodeVersion version{.major=16, .minor=0, .micro=0};
     static constexpr std::array<Data, 128> data{{
         Data{.code_point=0x28, .value={.paired_code_point=0x29, .bracket_paired_type=BracketPairedType::OPEN}},
         Data{.code_point=0x29, .value={.paired_code_point=0x28, .bracket_paired_type=BracketPairedType::CLOSE}},

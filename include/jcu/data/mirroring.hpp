@@ -16,7 +16,7 @@
 namespace jcu::data {
 
 
-class BidiMirroring {
+class MirroringData {
 public:
     using value_type = char32_t;
 
@@ -37,7 +37,7 @@ private:
         value_type value;
     };
 
-    static constexpr UnicodeVersion version{.major=15, .minor=1, .micro=0};
+    static constexpr UnicodeVersion version{.major=16, .minor=0, .micro=0};
     static constexpr std::array<Data, 428> data{{
         Data{.code_point=0x28, .value=0x29},
         Data{.code_point=0x29, .value=0x28},
