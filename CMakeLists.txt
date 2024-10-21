@@ -11,3 +11,4 @@ project(
 enable_testing()
 add_subdirectory(tests EXCLUDE_FROM_ALL)
 add_subdirectory(code_gen EXCLUDE_FROM_ALL)
+add_subdirectory(data EXCLUDE_FROM_ALL)
