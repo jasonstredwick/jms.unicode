@@ -19,7 +19,7 @@
 #include "jcu/bidi/run_queue.hpp"
 #include "jcu/bidi/isolating_run.hpp"
 #include "jcu/bidi/runs.hpp"
-#include "jcu/data/bidi_type.hpp"
+#include "jcu/data/derived_bidi_class.hpp"
 #include "jcu/utf/utf.hpp"
 
 

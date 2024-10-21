@@ -17,7 +17,7 @@ namespace jcu::code_gen {
 
 
 std::filesystem::path Path(const jcu::ucd::BidiMirroring&, const std::filesystem::path& root) {
-    return root / "jcu" / "data" / "mirroring.hpp";
+    return root / "jcu" / "data" / "bidi_mirroring.hpp";
 }
 
 
@@ -41,7 +41,7 @@ R"(/*
 namespace jcu::data {
 
 
-class MirroringData {
+class BidiMirroring {
 public:
     using value_type = char32_t;
 

@@ -17,7 +17,7 @@ namespace jcu::code_gen {
 
 
 std::filesystem::path Path(const jcu::ucd::BidiBrackets&, const std::filesystem::path& root) {
-    return root / "jcu" / "data" / "bracket.hpp";
+    return root / "jcu" / "data" / "bidi_brackets.hpp";
 }
 
 

@@ -16,7 +16,7 @@
 
 #include "jcu/bidi/algorithm.hpp"
 #include "jcu/bidi/runs.hpp"
-#include "jcu/data/bidi_type.hpp"
+#include "jcu/data/derived_bidi_class.hpp"
 #include "jcu/ucd/bidi_test.hpp"
 
 

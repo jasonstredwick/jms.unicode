@@ -19,11 +19,11 @@
 
 #include "jcu/utf/format.hpp"
 
-#include "bidi_bracket_data.hpp"
-#include "bidi_mirroring_data.hpp"
-#include "bidi_type_data.hpp"
-#include "general_category_data.hpp"
-#include "script_data.hpp"
+#include "data_bidi_brackets.hpp"
+#include "data_derived_bidi_class.hpp"
+#include "data_bidi_mirroring.hpp"
+#include "data_derived_general_category.hpp"
+#include "data_scripts.hpp"
 
 
 using namespace jcu;
@@ -32,11 +32,11 @@ using namespace jcu::ucd;
 
 
 std::map<std::string_view, int> targets{
-    {"BidiBracketData", 0},
-    {"BidiMirroringData", 0},
-    {"BidiTypeData", 0},
-    {"GeneralCategoryData", 0},
-    {"ScriptData", 0}
+    {"BidiBrackets", 0},
+    {"BidiMirroring", 0},
+    {"DerivedBidiClass", 0},
+    {"GeneralCategory", 0},
+    {"Scripts", 0}
 };
 
 
@@ -92,11 +92,11 @@ int main(int argc, const char** argv) {
         if (!target) { continue; }
         std::print("Generating {} ... ", k);
         try {
-            if      (k == "BidiBracketData")     { Write(BidiBrackets{data_path}, include_path); }
-            else if (k == "BidiMirroringData")   { Write(BidiMirroring{data_path}, include_path); }
-            else if (k == "BidiTypeData")        { Write(DerivedBidiClass{data_path}, include_path); }
-            else if (k == "GeneralCategoryData") { Write(DerivedGeneralCategory{data_path}, include_path); }
-            else if (k == "ScriptData")          { Write(Scripts{data_path}, include_path); }
+            if      (k == "BidiBrackets")     { Write(BidiBrackets{data_path}, include_path); }
+            else if (k == "BidiMirroring")   { Write(BidiMirroring{data_path}, include_path); }
+            else if (k == "DerivedBidiClass")        { Write(DerivedBidiClass{data_path}, include_path); }
+            else if (k == "GeneralCategory") { Write(DerivedGeneralCategory{data_path}, include_path); }
+            else if (k == "Scripts")          { Write(Scripts{data_path}, include_path); }
             else { throw std::runtime_error{"Misalignment targets:Write"}; }
         } catch(const std::exception& e) {
             std::println("failed");

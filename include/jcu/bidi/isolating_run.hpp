@@ -14,7 +14,7 @@
 #include "jcu/bidi/bidi_type.hpp"
 #include "jcu/bidi/bracket_queue.hpp"
 #include "jcu/bidi/level_run.hpp"
-#include "jcu/data/bracket.hpp"
+#include "jcu/data/bidi_brackets.hpp"
 #include "jcu/utf/concepts.hpp"
 
 

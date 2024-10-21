@@ -17,7 +17,7 @@ namespace jcu::code_gen {
 
 
 std::filesystem::path Path(const jcu::ucd::DerivedBidiClass&, const std::filesystem::path& root) {
-    return root / "jcu" / "data" / "bidi_type.hpp";
+    return root / "jcu" / "data" / "derived_bidi_class.hpp";
 }
 
 
