@@ -181,6 +181,13 @@ constexpr jcu::Script FromAliasString(std::string_view sv) {
     if (sv == std::string_view{"VITH"}) { return jcu::Script::VITH; }
     if (sv == std::string_view{"KAWI"}) { return jcu::Script::KAWI; }
     if (sv == std::string_view{"NAGM"}) { return jcu::Script::NAGM; }
+    if (sv == std::string_view{"GARA"}) { return jcu::Script::GARA; }
+    if (sv == std::string_view{"GUKH"}) { return jcu::Script::GUKH; }
+    if (sv == std::string_view{"KRAI"}) { return jcu::Script::KRAI; }
+    if (sv == std::string_view{"ONAO"}) { return jcu::Script::ONAO; }
+    if (sv == std::string_view{"SUNU"}) { return jcu::Script::SUNU; }
+    if (sv == std::string_view{"TODR"}) { return jcu::Script::TODR; }
+    if (sv == std::string_view{"TUTG"}) { return jcu::Script::TUTG; }
     return jcu::Script::NIL;
 }
 
@@ -350,6 +357,13 @@ constexpr jcu::Script FromString(std::string_view sv) {
     if (sv == std::string_view{"Vithkuqi"}) { return jcu::Script::VITH; }
     if (sv == std::string_view{"Kawi"}) { return jcu::Script::KAWI; }
     if (sv == std::string_view{"Nag_Mundari"}) { return jcu::Script::NAGM; }
+    if (sv == std::string_view{"Garay"}) { return jcu::Script::GARA; }
+    if (sv == std::string_view{"Gurung_Khema"}) { return jcu::Script::GUKH; }
+    if (sv == std::string_view{"Kirat_Rai"}) { return jcu::Script::KRAI; }
+    if (sv == std::string_view{"Ol_Onal"}) { return jcu::Script::ONAO; }
+    if (sv == std::string_view{"Sunuwar"}) { return jcu::Script::SUNU; }
+    if (sv == std::string_view{"Todhri"}) { return jcu::Script::TODR; }
+    if (sv == std::string_view{"Tulu_Tigalari"}) { return jcu::Script::TUTG; }
     return jcu::Script::NIL;
 }
 
@@ -519,6 +533,13 @@ constexpr std::string ToAliasString(jcu::Script value) {
     if (value == jcu::Script::VITH) { return "VITH"; }
     if (value == jcu::Script::KAWI) { return "KAWI"; }
     if (value == jcu::Script::NAGM) { return "NAGM"; }
+    if (value == jcu::Script::GARA) { return "GARA"; }
+    if (value == jcu::Script::GUKH) { return "GUKH"; }
+    if (value == jcu::Script::KRAI) { return "KRAI"; }
+    if (value == jcu::Script::ONAO) { return "ONAO"; }
+    if (value == jcu::Script::SUNU) { return "SUNU"; }
+    if (value == jcu::Script::TODR) { return "TODR"; }
+    if (value == jcu::Script::TUTG) { return "TUTG"; }
     return "NIL";
 }
 
@@ -688,6 +709,13 @@ constexpr std::string ToString(jcu::Script value) {
     if (value == jcu::Script::VITH) { return "Vithkuqi"; }
     if (value == jcu::Script::KAWI) { return "Kawi"; }
     if (value == jcu::Script::NAGM) { return "Nag_Mundari"; }
+    if (value == jcu::Script::GARA) { return "Garay"; }
+    if (value == jcu::Script::GUKH) { return "Gurung_Khema"; }
+    if (value == jcu::Script::KRAI) { return "Kirat_Rai"; }
+    if (value == jcu::Script::ONAO) { return "Ol_Onal"; }
+    if (value == jcu::Script::SUNU) { return "Sunuwar"; }
+    if (value == jcu::Script::TODR) { return "Todhri"; }
+    if (value == jcu::Script::TUTG) { return "Tulu_Tigalari"; }
     return "NIL";
 }
 

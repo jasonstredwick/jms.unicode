@@ -220,7 +220,16 @@ enum class Script : uint8_t {
 
     /* Unicde 15.1 */
     KAWI = 0xA3,    //<  Kawi
-    NAGM = 0xA4     //<  Nag_Mundari
+    NAGM = 0xA4,    //<  Nag_Mundari
+
+    /* Unicde 16.0 */
+    GARA = 0xA5,    //<  Garay
+    GUKH = 0xA6,    //<  Gurung_Khema
+    KRAI = 0xA7,    //<  Kirat_Rai
+    ONAO = 0xA8,    //<  Ol_Onal
+    SUNU = 0xA9,    //<  Sunuwar
+    TODR = 0xAA,    //<  Todhri
+    TUTG = 0xAB     //<  Tulu_Tigalari
 };
 
 
